@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, onMounted, onUnmounted } from 'vue';
 import { 
-    Tv, Clock, Zap, AlertTriangle, Play, Plus, 
+    Tv, Clock, Zap, TriangleAlert, Play, Plus, 
     Pause, ShieldAlert, ArrowRightLeft, 
     CheckCircle2, DollarSign, Users, Moon,
     Sparkles, Coffee, Power
@@ -161,46 +161,46 @@ function formatHms(seconds: number): string {
 // Status styling & badges
 const cardTheme = computed(() => {
     if (props.station.is_rogue) {
-        return 'border-rose-500/80 bg-rose-950/20 shadow-lg shadow-rose-950/40 ring-1 ring-rose-500/50 animate-pulse';
+        return 'border-status-rogue/80 bg-status-rogue/10 animate-rogue-pulse';
     }
 
     switch (props.station.current_state) {
         case 'available':
-            return 'border-emerald-500/30 bg-[#0f172a]/90 hover:border-emerald-500/60 shadow-md';
+            return 'border-status-available/40 bg-surface-card hover:border-status-available/70 shadow-md';
         case 'active_prepaid':
             if (isExpiringSoon.value) {
-                return 'border-amber-500/80 bg-amber-950/20 ring-1 ring-amber-500/50 shadow-lg shadow-amber-950/30';
+                return 'border-status-warning/70 bg-surface-card';
             }
-            return 'border-sky-500/50 bg-[#0f172a] ring-1 ring-sky-500/30 shadow-lg shadow-sky-950/30';
+            return 'border-status-prepaid/50 bg-surface-card';
         case 'active_postpaid':
-            return 'border-purple-500/50 bg-[#0f172a] ring-1 ring-purple-500/30 shadow-lg shadow-purple-950/30';
+            return 'border-status-postpaid/50 bg-surface-card';
         case 'paused':
-            return 'border-amber-500/40 bg-amber-950/10 shadow-md';
+            return 'border-status-paused/50 bg-surface-card shadow-md';
         case 'payment_pending':
-            return 'border-amber-500/70 bg-amber-950/20 shadow-lg shadow-amber-950/40';
+            return 'border-status-warning/80 bg-surface-card shadow-md';
         default:
-            return 'border-slate-800 bg-slate-900/50';
+            return 'border-surface-border bg-surface-elevated/50';
     }
 });
 
 const statusBadge = computed(() => {
     if (props.station.is_rogue) {
-        return { text: 'UNAUTHORIZED TV ON', bg: 'bg-rose-500/20 text-rose-300 border-rose-500/40 animate-pulse' };
+        return { text: 'UNAUTHORIZED TV ON', bg: 'bg-status-rogue/15 text-status-rogue border-status-rogue/40' };
     }
 
     switch (props.station.current_state) {
         case 'available':
-            return { text: 'TV OFF (Ready)', bg: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' };
+            return { text: 'TV OFF (Ready)', bg: 'bg-status-available/10 text-status-available border-status-available/30' };
         case 'active_prepaid':
-            return { text: isExpiringSoon.value ? 'Expiring Soon' : 'Prepaid In-Play', bg: isExpiringSoon.value ? 'bg-amber-500/20 text-amber-300 border-amber-500/40' : 'bg-sky-500/20 text-sky-300 border-sky-500/30' };
+            return { text: isExpiringSoon.value ? 'Expiring Soon' : 'Prepaid In-Play', bg: isExpiringSoon.value ? 'bg-status-warning/15 text-status-warning border-status-warning/40' : 'bg-status-prepaid/15 text-status-prepaid border-status-prepaid/30' };
         case 'active_postpaid':
-            return { text: 'Open Postpaid Tab', bg: 'bg-purple-500/20 text-purple-300 border-purple-500/30' };
+            return { text: 'Open Postpaid Tab', bg: 'bg-status-postpaid/15 text-status-postpaid border-status-postpaid/30' };
         case 'paused':
-            return { text: 'TV Suspended (Paused)', bg: 'bg-amber-500/20 text-amber-300 border-amber-500/30' };
+            return { text: 'TV Suspended (Paused)', bg: 'bg-status-paused/15 text-status-paused border-status-paused/30' };
         case 'payment_pending':
-            return { text: 'TV Standby (Bill Due)', bg: 'bg-amber-500/20 text-amber-300 border-amber-500/40' };
+            return { text: 'TV Standby (Bill Due)', bg: 'bg-status-warning/15 text-status-warning border-status-warning/40' };
         default:
-            return { text: 'Standby', bg: 'bg-slate-800 text-slate-400 border-slate-700' };
+            return { text: 'Standby', bg: 'bg-surface-overlay text-text-muted border-surface-border-subtle' };
     }
 });
 </script>
@@ -211,30 +211,30 @@ const statusBadge = computed(() => {
         <div class="flex flex-col gap-2.5">
             <div class="flex items-center justify-between">
                 <div class="flex items-center gap-2">
-                    <span class="text-base font-bold text-white tracking-wide">
+                    <span class="text-base font-bold text-text-primary tracking-wide">
                         {{ station.name }}
                     </span>
                     <span
                         v-if="station.is_vip"
-                        class="px-2 py-0.5 text-[10px] font-extrabold uppercase rounded bg-gradient-to-r from-amber-500/30 to-amber-600/30 text-amber-300 border border-amber-500/40 shadow-sm"
+                        class="px-2 py-0.5 text-xs font-semibold uppercase tracking-wide rounded-full border border-status-warning/40 bg-status-warning/10 text-status-warning"
                     >
-                        VIP ★
+                        VIP
                     </span>
                 </div>
 
                 <!-- TV Physical State Indicator -->
-                <div class="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-slate-900/80 border border-slate-800 text-[11px]">
-                    <Tv class="w-3 h-3 text-slate-400" />
+                <div class="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-surface-overlay border border-surface-border-subtle text-xs">
+                    <Tv class="w-3 h-3 text-text-muted" />
                     <span
                         :class="[
                             'w-2 h-2 rounded-full',
-                            station.tv_physical_state === 'screen_on' ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'
+                            station.tv_physical_state === 'screen_on' ? 'bg-status-available' : 'bg-text-muted'
                         ]"
                     ></span>
-                    <span class="text-[10px] uppercase font-mono text-slate-300">
+                    <span class="text-xs uppercase font-mono text-text-secondary">
                         {{ station.tv_physical_state === 'screen_on' ? 'SCREEN ON' : 'STANDBY' }}
                     </span>
-                    <span class="text-[9px] uppercase font-bold px-1 rounded bg-slate-800 text-slate-400">
+                    <span class="text-xs uppercase font-semibold px-1 rounded bg-surface-elevated text-text-muted">
                         {{ station.tv_os_type }}
                     </span>
                 </div>
@@ -244,11 +244,11 @@ const statusBadge = computed(() => {
             <div class="flex items-center justify-between">
                 <span
                     :class="[
-                        'px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wide border flex items-center gap-1.5',
+                        'px-2.5 py-1 rounded-full text-xs font-semibold uppercase tracking-wide border flex items-center gap-1.5',
                         statusBadge.bg
                     ]"
                 >
-                    <AlertTriangle v-if="station.is_rogue" class="w-3.5 h-3.5 animate-bounce" />
+                    <TriangleAlert v-if="station.is_rogue" class="w-3.5 h-3.5" />
                     <CheckCircle2 v-else-if="station.current_state === 'available'" class="w-3 h-3" />
                     <Clock v-else-if="station.current_state === 'active_prepaid'" class="w-3 h-3" />
                     <Zap v-else-if="station.current_state === 'active_postpaid'" class="w-3 h-3" />
@@ -256,42 +256,41 @@ const statusBadge = computed(() => {
                     {{ statusBadge.text }}
                 </span>
 
-                <span v-if="station.active_session?.customer_name" class="text-xs text-slate-400 truncate max-w-[120px]">
-                    👤 {{ station.active_session.customer_name }}
+                <span v-if="station.active_session?.customer_name" class="text-xs text-text-muted truncate max-w-[120px]">
+                    {{ station.active_session.customer_name }}
                 </span>
             </div>
         </div>
 
         <!-- Central Timer & Live Billing Section -->
-        <div class="my-3 py-3 px-4 rounded-xl bg-[#090d16]/80 border border-slate-800/80 text-center flex flex-col justify-center items-center">
+        <div class="my-3 py-3 px-4 rounded-xl bg-surface-canvas/80 border border-surface-border-subtle text-center flex flex-col justify-center items-center">
             <!-- Rogue Play Alert Banner -->
             <template v-if="station.is_rogue">
-                <p class="text-xs font-bold text-rose-400 uppercase tracking-wide mb-1 flex items-center gap-1">
+                <p class="text-xs font-semibold text-status-rogue uppercase tracking-wide mb-1 flex items-center gap-1">
                     <ShieldAlert class="w-3.5 h-3.5" /> Unauthorized TV Power-On
                 </p>
-                <div class="text-3xl font-mono font-extrabold text-rose-300 tracking-tight tabular-nums">
+                <div class="text-3xl font-mono font-bold text-status-rogue tracking-tight tabular-nums">
                     {{ timerDisplay }}
                 </div>
-                <p class="text-[11px] text-slate-400 mt-1">TV turned on with remote (No Tab Active)</p>
+                <p class="text-xs text-text-muted mt-1">TV turned on with remote (No Tab Active)</p>
             </template>
 
             <!-- Available Idle Station -->
             <template v-else-if="station.current_state === 'available'">
-                <p class="text-xs text-emerald-400/90 font-semibold mb-1">Station Clean & TV Standby</p>
-                <div class="text-3xl font-mono font-extrabold text-slate-500 tracking-tight tabular-nums">
+                <p class="text-xs text-status-available font-semibold mb-1">Ready to start</p>
+                <div class="text-3xl font-mono font-bold text-text-primary tracking-tight tabular-nums">
                     00:00:00
                 </div>
-                <p class="text-xs text-slate-400 mt-1">PS5 powered in background — Ready to wake TV</p>
             </template>
 
             <!-- Active / Paused / Payment Pending Session -->
             <template v-else-if="station.active_session">
-                <div class="w-full flex items-center justify-between text-xs text-slate-400 mb-1 font-medium">
-                    <span class="flex items-center gap-1">
-                        <Users class="w-3.5 h-3.5 text-sky-400" />
+                <div class="w-full flex items-center justify-between text-xs mb-1 font-medium">
+                    <span class="flex items-center gap-1 text-text-secondary">
+                        <Users class="w-3.5 h-3.5 text-text-secondary" />
                         {{ station.active_session.current_tier?.name ?? 'Standard Tier' }}
                     </span>
-                    <span class="text-slate-300 font-mono">
+                    <span class="text-text-muted font-mono">
                         {{ station.active_session.current_tier?.rate_per_hour_lyd.toFixed(3) }} LYD/hr
                     </span>
                 </div>
@@ -299,26 +298,26 @@ const statusBadge = computed(() => {
                 <!-- Clock Display -->
                 <div
                     :class="[
-                        'text-3xl sm:text-4xl font-mono font-extrabold tracking-tight tabular-nums my-1',
-                        isExpiringSoon ? 'text-amber-400 animate-pulse' : (station.current_state === 'paused' ? 'text-amber-300' : 'text-white')
+                        'text-3xl sm:text-4xl font-mono font-bold tracking-tight tabular-nums my-1',
+                        isExpiringSoon ? 'text-status-warning' : (station.current_state === 'paused' ? 'text-status-paused' : 'text-text-primary')
                     ]"
                 >
                     {{ timerDisplay }}
                 </div>
 
                 <!-- Running Financial Total in LYD -->
-                <div class="w-full flex items-center justify-between pt-2 mt-1 border-t border-slate-800/80 text-xs">
-                    <span class="text-slate-400">
+                <div class="w-full flex items-center justify-between pt-2 mt-1 border-t border-surface-border-subtle text-xs">
+                    <span class="text-text-muted">
                         Running Bill:
                     </span>
-                    <span class="text-sm font-bold text-sky-400 font-mono tabular-nums">
+                    <span class="text-sm font-semibold text-text-primary font-mono tabular-nums">
                         {{ station.active_session.final_total_lyd.toFixed(3) }} LYD
                     </span>
                 </div>
 
                 <!-- Retail items tag if any -->
-                <div v-if="station.active_session.order_items?.length" class="w-full text-left mt-1 text-[11px] text-purple-300/90 truncate">
-                    🥤 +{{ station.active_session.order_items.reduce((acc, i) => acc + i.quantity, 0) }} Retail Snacks/Drinks
+                <div v-if="station.active_session.order_items?.length" class="w-full text-left mt-1 text-xs text-text-secondary truncate">
+                    +{{ station.active_session.order_items.reduce((acc, i) => acc + i.quantity, 0) }} items
                 </div>
             </template>
         </div>
@@ -330,14 +329,14 @@ const statusBadge = computed(() => {
                 <button
                     @click="emit('claim-rogue', station)"
                     type="button"
-                    class="py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md transition flex items-center justify-center gap-1.5 cursor-pointer"
+                    class="py-2.5 px-3 rounded-lg bg-brand-primary hover:bg-brand-primary-hover text-text-primary font-semibold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                     <Play class="w-3.5 h-3.5" /> Start Tab Here
                 </button>
                 <button
                     @click="emit('force-sleep', station)"
                     type="button"
-                    class="py-2.5 px-3 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shadow-md transition flex items-center justify-center gap-1.5 cursor-pointer"
+                    class="py-2.5 px-3 rounded-lg bg-status-rogue hover:brightness-110 text-text-primary font-semibold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                     <Moon class="w-3.5 h-3.5" /> Force Blackout
                 </button>
@@ -348,9 +347,9 @@ const statusBadge = computed(() => {
                 <button
                     @click="emit('start-session', station)"
                     type="button"
-                    class="w-full py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm shadow-lg shadow-emerald-950/40 transition flex items-center justify-center gap-2 cursor-pointer group"
+                    class="w-full py-3 px-4 rounded-lg bg-brand-primary hover:bg-brand-primary-hover text-text-primary font-semibold text-sm transition flex items-center justify-center gap-2 cursor-pointer"
                 >
-                    <Play class="w-4 h-4 group-hover:scale-110 transition-transform fill-current" />
+                    <Play class="w-4 h-4 fill-current" />
                     Start Session (Wake TV)
                 </button>
             </div>
@@ -362,21 +361,21 @@ const statusBadge = computed(() => {
                     <button
                         @click="emit('extend-time', station, 15)"
                         type="button"
-                        class="py-1.5 px-2 rounded-lg bg-slate-800 hover:bg-sky-600 text-slate-200 hover:text-white text-xs font-semibold border border-slate-700 transition cursor-pointer"
+                        class="py-1.5 px-2 rounded-lg bg-surface-elevated hover:bg-surface-border text-text-secondary text-xs font-semibold border border-surface-border-subtle transition cursor-pointer"
                     >
                         +15m
                     </button>
                     <button
                         @click="emit('extend-time', station, 30)"
                         type="button"
-                        class="py-1.5 px-2 rounded-lg bg-slate-800 hover:bg-sky-600 text-slate-200 hover:text-white text-xs font-semibold border border-slate-700 transition cursor-pointer"
+                        class="py-1.5 px-2 rounded-lg bg-surface-elevated hover:bg-surface-border text-text-secondary text-xs font-semibold border border-surface-border-subtle transition cursor-pointer"
                     >
                         +30m
                     </button>
                     <button
                         @click="emit('extend-time', station, 60)"
                         type="button"
-                        class="py-1.5 px-2 rounded-lg bg-slate-800 hover:bg-sky-600 text-slate-200 hover:text-white text-xs font-semibold border border-slate-700 transition cursor-pointer"
+                        class="py-1.5 px-2 rounded-lg bg-surface-elevated hover:bg-surface-border text-text-secondary text-xs font-semibold border border-surface-border-subtle transition cursor-pointer"
                     >
                         +1h
                     </button>
@@ -387,23 +386,23 @@ const statusBadge = computed(() => {
                     <button
                         @click="emit('switch-tier', station)"
                         type="button"
-                        class="py-1.5 px-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 text-[11px] font-medium border border-slate-800 transition flex items-center justify-center gap-1 cursor-pointer"
+                        class="py-1.5 px-2 rounded-lg bg-surface-elevated hover:bg-surface-border text-text-secondary text-xs font-medium border border-surface-border-subtle transition flex items-center justify-center gap-1 cursor-pointer"
                         title="Switch Controller Count"
                     >
-                        <Users class="w-3 h-3 text-sky-400" /> Tier
+                        <Users class="w-3 h-3" /> Tier
                     </button>
                     <button
                         @click="emit('add-retail-item', station)"
                         type="button"
-                        class="py-1.5 px-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 text-[11px] font-medium border border-slate-800 transition flex items-center justify-center gap-1 cursor-pointer"
+                        class="py-1.5 px-2 rounded-lg bg-surface-elevated hover:bg-surface-border text-text-secondary text-xs font-medium border border-surface-border-subtle transition flex items-center justify-center gap-1 cursor-pointer"
                         title="Add Drinks / Snacks"
                     >
-                        <Coffee class="w-3 h-3 text-purple-400" /> POS
+                        <Coffee class="w-3 h-3" /> POS
                     </button>
                     <button
                         @click="emit('end-session', station)"
                         type="button"
-                        class="py-1.5 px-2 rounded-lg bg-rose-950/40 hover:bg-rose-600 text-rose-300 hover:text-white text-[11px] font-bold border border-rose-800/50 transition flex items-center justify-center gap-1 cursor-pointer"
+                        class="py-1.5 px-2 rounded-lg border border-status-rogue/50 text-status-rogue hover:bg-status-rogue hover:text-text-primary text-xs font-semibold transition flex items-center justify-center gap-1 cursor-pointer"
                     >
                         End Tab
                     </button>
@@ -416,30 +415,30 @@ const statusBadge = computed(() => {
                     <button
                         @click="emit('switch-tier', station)"
                         type="button"
-                        class="py-2 px-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition flex items-center justify-center gap-1 cursor-pointer"
+                        class="py-2 px-2 rounded-lg bg-surface-elevated hover:bg-surface-border text-text-secondary text-xs font-semibold border border-surface-border-subtle transition flex items-center justify-center gap-1 cursor-pointer"
                     >
-                        <Users class="w-3.5 h-3.5 text-purple-400" /> Tier
+                        <Users class="w-3.5 h-3.5" /> Tier
                     </button>
                     <button
                         @click="emit('add-retail-item', station)"
                         type="button"
-                        class="py-2 px-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition flex items-center justify-center gap-1 cursor-pointer"
+                        class="py-2 px-2 rounded-lg bg-surface-elevated hover:bg-surface-border text-text-secondary text-xs font-semibold border border-surface-border-subtle transition flex items-center justify-center gap-1 cursor-pointer"
                     >
-                        <Coffee class="w-3.5 h-3.5 text-purple-400" /> +Snack
+                        <Coffee class="w-3.5 h-3.5" /> +Snack
                     </button>
                     <button
                         @click="emit('pause-session', station)"
                         type="button"
-                        class="py-2 px-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition flex items-center justify-center gap-1 cursor-pointer"
+                        class="py-2 px-2 rounded-lg bg-surface-elevated hover:bg-surface-border text-text-secondary text-xs font-semibold border border-surface-border-subtle transition flex items-center justify-center gap-1 cursor-pointer"
                     >
-                        <Pause class="w-3.5 h-3.5 text-amber-400" /> Pause
+                        <Pause class="w-3.5 h-3.5" /> Pause
                     </button>
                 </div>
 
                 <button
                     @click="emit('end-session', station)"
                     type="button"
-                    class="w-full py-2.5 px-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
+                    class="w-full py-2.5 px-3 rounded-lg bg-brand-primary hover:bg-brand-primary-hover text-text-primary font-semibold text-xs transition flex items-center justify-center gap-2 cursor-pointer"
                 >
                     <Moon class="w-3.5 h-3.5" /> Stop & Invoice Tab
                 </button>
@@ -450,14 +449,14 @@ const statusBadge = computed(() => {
                 <button
                     @click="emit('resume-session', station)"
                     type="button"
-                    class="py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md transition flex items-center justify-center gap-1.5 cursor-pointer"
+                    class="py-2.5 px-3 rounded-lg bg-brand-primary hover:bg-brand-primary-hover text-text-primary font-semibold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                     <Play class="w-3.5 h-3.5 fill-current" /> Resume Play
                 </button>
                 <button
                     @click="emit('end-session', station)"
                     type="button"
-                    class="py-2.5 px-3 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shadow-md transition flex items-center justify-center gap-1.5 cursor-pointer"
+                    class="py-2.5 px-3 rounded-lg border border-status-rogue/50 text-status-rogue hover:bg-status-rogue hover:text-text-primary font-semibold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                     Close Tab
                 </button>
@@ -468,7 +467,7 @@ const statusBadge = computed(() => {
                 <button
                     @click="emit('settle-payment', station)"
                     type="button"
-                    class="w-full py-3 px-4 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs uppercase tracking-wider shadow-lg shadow-amber-950/40 transition flex items-center justify-center gap-2 cursor-pointer"
+                    class="w-full py-3 px-4 rounded-lg bg-status-warning text-surface-canvas font-semibold text-xs uppercase tracking-wide transition flex items-center justify-center gap-2 cursor-pointer"
                 >
                     <DollarSign class="w-4 h-4" />
                     Collect & Print Invoice
@@ -477,14 +476,14 @@ const statusBadge = computed(() => {
         </div>
 
         <!-- Transfer Option (Available when Active) -->
-        <div v-if="['active_prepaid', 'active_postpaid', 'paused'].includes(station.current_state)" class="pt-2 border-t border-slate-800/80 mt-2 flex justify-between items-center text-[11px] text-slate-400">
+        <div v-if="['active_prepaid', 'active_postpaid', 'paused'].includes(station.current_state)" class="pt-2 border-t border-surface-border-subtle mt-2 flex justify-between items-center text-xs text-text-muted">
             <span>Move session:</span>
             <button
                 @click="emit('transfer-station', station)"
                 type="button"
-                class="hover:text-white flex items-center gap-1 font-semibold transition cursor-pointer"
+                class="hover:text-text-primary flex items-center gap-1 font-semibold transition cursor-pointer"
             >
-                <ArrowRightLeft class="w-3 h-3 text-sky-400" /> Transfer
+                <ArrowRightLeft class="w-3 h-3" /> Transfer
             </button>
         </div>
     </div>
