@@ -1,0 +1,113 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-17T13:25:00Z",
+  "title": "Design System: Joy Games Lounge Management & Automation System (GLMAS)",
+  "extensions": {
+    "colorMeta": {
+      "primary": {
+        "role": "primary",
+        "displayName": "Electric Cobalt",
+        "canonical": "oklch(58% 0.18 240)",
+        "tonalRamp": ["#082f49", "#0c4a6e", "#0369a1", "#0284c7", "#38bdf8", "#7dd3fc", "#bae6fd", "#f0f9ff"]
+      },
+      "status-available": {
+        "role": "status-success",
+        "displayName": "Available Emerald",
+        "canonical": "oklch(68% 0.17 155)",
+        "tonalRamp": ["#064e3b", "#065f46", "#047857", "#059669", "#10b981", "#34d399", "#6ee7b7", "#ecfdf5"]
+      },
+      "status-postpaid": {
+        "role": "status-info",
+        "displayName": "Postpaid Royal Violet",
+        "canonical": "oklch(62% 0.22 290)",
+        "tonalRamp": ["#2e1065", "#3b0764", "#581c87", "#7c3aed", "#8b5cf6", "#a78bfa", "#c4b5fd", "#f5f3ff"]
+      },
+      "status-rogue": {
+        "role": "status-danger",
+        "displayName": "Rogue Crimson",
+        "canonical": "oklch(58% 0.23 25)",
+        "tonalRamp": ["#450a0a", "#7f1d1d", "#991b1b", "#b91c1c", "#dc2626", "#ef4444", "#f87171", "#fef2f2"]
+      },
+      "status-warning": {
+        "role": "status-warning",
+        "displayName": "Expiring Amber",
+        "canonical": "oklch(75% 0.18 70)",
+        "tonalRamp": ["#451a03", "#78350f", "#92400e", "#b45309", "#d97706", "#f59e0b", "#fbbf24", "#fffbeb"]
+      },
+      "surface-card": {
+        "role": "neutral",
+        "displayName": "Midnight Slate Surface",
+        "canonical": "oklch(18% 0.03 260)",
+        "tonalRamp": ["#020617", "#090d16", "#0f172a", "#1e293b", "#334155", "#475569", "#64748b", "#94a3b8"]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Main lounge headline and key KPI headers." },
+      "headline": { "displayName": "Headline", "purpose": "Station Card name titles (PS5 Station 01)." },
+      "mono-timer": { "displayName": "Mono Timer", "purpose": "High-precision countdowns, stopwatches, and LYD sums." }
+    },
+    "shadows": [
+      { "name": "card-ambient", "value": "0 4px 20px -2px rgba(0, 0, 0, 0.5)", "purpose": "Resting elevation for station pods." },
+      { "name": "modal-deep", "value": "0 20px 25px -5px rgba(0, 0, 0, 0.7), 0 8px 10px -6px rgba(0, 0, 0, 0.7)", "purpose": "Elevation for action modals and popovers." },
+      { "name": "rogue-glow", "value": "0 0 25px rgba(239, 68, 68, 0.35)", "purpose": "Pulsing alert for unauthorized rogue play." }
+    ],
+    "motion": [
+      { "name": "ease-standard", "value": "cubic-bezier(0.4, 0, 0.2, 1)", "purpose": "Default easing for modal opens and card hover states." },
+      { "name": "duration-fast", "value": "150ms", "purpose": "Snappy touch button transitions." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" },
+      { "name": "xl", "value": "1280px" },
+      { "name": "2xl", "value": "1536px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Station Action Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Primary action button on station cards and modals.",
+      "html": "<button class=\"ds-btn-primary\">START SESSION</button>",
+      "css": ".ds-btn-primary { background: #0284c7; color: #f8fafc; padding: 10px 18px; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; font-weight: 600; border: none; border-radius: 8px; cursor: pointer; transition: background 0.15s ease, transform 0.15s ease; } .ds-btn-primary:hover { background: #0369a1; transform: translateY(-1px); } .ds-btn-primary:active { transform: translateY(0); }"
+    },
+    {
+      "name": "Station Card Pod",
+      "kind": "card",
+      "refersTo": "card-station",
+      "description": "The central gaming lounge station tile representing an individual PS5 station.",
+      "html": "<div class=\"ds-station-card\"><div class=\"ds-card-header\"><span class=\"ds-station-name\">PS5 #01</span><span class=\"ds-status-badge ds-badge-available\">READY</span></div><div class=\"ds-timer\">00:00</div><button class=\"ds-btn-primary\">START SESSION</button></div>",
+      "css": ".ds-station-card { background: #0f172a; border: 1.5px solid #059669; border-radius: 16px; padding: 20px; color: #f8fafc; box-shadow: 0 4px 20px -2px rgba(0,0,0,0.5); display: flex; flex-direction: column; gap: 14px; } .ds-card-header { display: flex; justify-content: space-between; align-items: center; } .ds-station-name { font-size: 18px; font-weight: 700; } .ds-status-badge { font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 9999px; } .ds-badge-available { background: #064e3b; color: #34d399; border: 1px solid #059669; } .ds-timer { font-family: monospace; font-size: 28px; font-weight: 700; text-align: center; margin: 8px 0; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Neon Mission Control",
+    "overview": "The interface is an Operate-mode cockpit engineered for gaming lounge operators and cashiers working under ambient, low-light lounge lighting conditions. It balances high-velocity operational efficiency with crystal-clear station visibility across tablet screens and desktop monitors.",
+    "keyCharacteristics": [
+      "Scan-First Station Grid with semantic status color anchoring",
+      "Tabular precision for countdowns, stopwatches, and Libyan Dinar (LYD) totals",
+      "Direct-touch density tailored for cashier tablets",
+      "Fast-action command modals for sessions, add-ons, and checkout"
+    ],
+    "rules": [
+      { "name": "The Single-Meaning Color Rule", "body": "Colors carry operational meaning strictly. Green = Available, Blue = Prepaid Active, Purple = Postpaid Active, Amber = Expiring, Red = Rogue Play. Never use these semantic hues decoratively.", "section": "colors" },
+      { "name": "The Currency Clarity Rule", "body": "All monetary values are rendered in Libyan Dinar (LYD) with explicit formatting (e.g. 12.500 LYD or 12.500 د.ل) in tabular numerals.", "section": "colors" },
+      { "name": "The Tabular Clock Rule", "body": "Every live clock, countdown timer, running stopwatch, and currency amount MUST use tabular numerals (font-variant-numeric: tabular-nums) to prevent visual jitter.", "section": "typography" },
+      { "name": "The State-Anchored Border Rule", "body": "Station cards express operational state through a 1.5px state-colored accent border and tinted header pill, avoiding eye-fatiguing full-card saturation floods.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do format all currency explicitly in Libyan Dinar (LYD / د.ل) with 3-decimal precision.",
+      "Do enforce tabular-nums on all timers, stopwatches, and price displays.",
+      "Do provide instant visual feedback on all touchscreen cashier buttons.",
+      "Do calculate change automatically in the checkout modal when cash is received.",
+      "Do offer 1-tap quick time extension buttons (+15m, +30m, +1h) for active prepaid sessions."
+    ],
+    "donts": [
+      "Don't use generic modals for simple inline actions.",
+      "Don't use decorative gradients on text or un-anchored glowing borders.",
+      "Don't allow timers to drift on client refresh: compute from authoritative server timestamps.",
+      "Don't allow checkout settlement without recording the active cashier and shift ID."
+    ]
+  }
+}
