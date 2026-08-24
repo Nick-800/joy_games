@@ -11,6 +11,7 @@ import ShiftModal from '../components/modals/ShiftModal.vue';
 import PinSwitchModal from '../components/modals/PinSwitchModal.vue';
 import TransferModal from '../components/modals/TransferModal.vue';
 import HardwareSimulatorDrawer from '../components/simulator/HardwareSimulatorDrawer.vue';
+import { TriangleAlert } from 'lucide-vue-next';
 
 interface PricingTierItem {
     id: number;
@@ -144,7 +145,7 @@ function onForceSleep(station: StationData) {
 </script>
 
 <template>
-    <div class="min-h-screen bg-[#090d16] text-slate-100 flex flex-col selection:bg-sky-500 selection:text-white pb-36">
+    <div class="min-h-screen bg-surface-canvas text-text-primary flex flex-col selection:bg-brand-primary selection:text-text-primary pb-36">
         <!-- Top Operational Header Bar -->
         <ShiftHeaderBar
             :active-shift="activeShift"
@@ -159,16 +160,16 @@ function onForceSleep(station: StationData) {
         <!-- Main Station Matrix Workspace -->
         <main class="max-w-7xl w-full mx-auto px-4 lg:px-6 py-6 flex-1 flex flex-col gap-6">
             <!-- Filter Bar & Lounge KPIs -->
-            <div class="flex flex-wrap items-center justify-between gap-3 bg-[#0f172a]/70 p-3 rounded-2xl border border-slate-800">
+            <div class="flex flex-wrap items-center justify-between gap-3 bg-surface-card/60 p-3 rounded-2xl border border-surface-border-subtle">
                 <div class="flex items-center gap-2">
                     <button
                         @click="activeFilter = 'all'"
                         type="button"
                         :class="[
-                            'px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer',
+                            'px-3.5 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer',
                             activeFilter === 'all'
-                                ? 'bg-sky-600 text-white shadow'
-                                : 'bg-slate-900 text-slate-400 hover:text-white'
+                                ? 'bg-surface-elevated text-text-primary border border-surface-border'
+                                : 'bg-surface-overlay text-text-muted hover:text-text-secondary border border-transparent'
                         ]"
                     >
                         All Stations ({{ stations.length }})
@@ -177,10 +178,10 @@ function onForceSleep(station: StationData) {
                         @click="activeFilter = 'active'"
                         type="button"
                         :class="[
-                            'px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer',
+                            'px-3.5 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer',
                             activeFilter === 'active'
-                                ? 'bg-purple-600 text-white shadow'
-                                : 'bg-slate-900 text-slate-400 hover:text-white'
+                                ? 'bg-surface-elevated text-text-primary border border-surface-border'
+                                : 'bg-surface-overlay text-text-muted hover:text-text-secondary border border-transparent'
                         ]"
                     >
                         Active In-Play ({{ activeStationsCount }})
@@ -189,10 +190,10 @@ function onForceSleep(station: StationData) {
                         @click="activeFilter = 'available'"
                         type="button"
                         :class="[
-                            'px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer',
+                            'px-3.5 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer',
                             activeFilter === 'available'
-                                ? 'bg-emerald-600 text-white shadow'
-                                : 'bg-slate-900 text-slate-400 hover:text-white'
+                                ? 'bg-surface-elevated text-text-primary border border-surface-border'
+                                : 'bg-surface-overlay text-text-muted hover:text-text-secondary border border-transparent'
                         ]"
                     >
                         Available Ready ({{ stations.length - activeStationsCount }})
@@ -202,18 +203,19 @@ function onForceSleep(station: StationData) {
                         @click="activeFilter = 'rogue'"
                         type="button"
                         :class="[
-                            'px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer animate-pulse',
+                            'px-3.5 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1.5',
                             activeFilter === 'rogue'
-                                ? 'bg-rose-600 text-white shadow'
-                                : 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
+                                ? 'bg-surface-elevated text-text-primary border border-surface-border'
+                                : 'bg-surface-overlay text-status-rogue border border-status-rogue/40'
                         ]"
                     >
-                        ⚠️ Rogue Alerts ({{ rogueCount }})
+                        <TriangleAlert class="w-3.5 h-3.5" />
+                        Rogue ({{ rogueCount }})
                     </button>
                 </div>
 
-                <div class="text-xs text-slate-400 font-medium">
-                    Currency: <span class="text-amber-300 font-bold font-mono">Libyan Dinar (LYD / د.ل)</span>
+                <div class="text-xs text-text-muted font-medium">
+                    Currency: <span class="text-text-primary font-semibold font-mono">Libyan Dinar (LYD / د.ل)</span>
                 </div>
             </div>
 
