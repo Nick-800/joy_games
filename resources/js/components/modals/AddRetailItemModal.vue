@@ -56,19 +56,19 @@ function removeItem(orderItemId: number) {
 
 <template>
     <div v-if="show && station" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-        <div class="w-full max-w-2xl bg-[#0f172a] border border-slate-700 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+        <div class="w-full max-w-2xl bg-surface-elevated border border-surface-border rounded-2xl shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
             <!-- Header -->
-            <div class="px-6 py-4 bg-[#1e293b]/70 border-b border-slate-800 flex items-center justify-between">
+            <div class="px-6 py-4 border-b border-surface-border-subtle flex items-center justify-between">
                 <div class="flex items-center gap-2">
-                    <Coffee class="w-5 h-5 text-purple-400" />
-                    <h3 class="text-lg font-bold text-white">
+                    <Coffee class="w-5 h-5 text-text-muted" />
+                    <h3 class="text-base font-semibold text-text-primary">
                         Add Snacks & Drinks — {{ station.name }}
                     </h3>
                 </div>
                 <button
                     @click="emit('close')"
                     type="button"
-                    class="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+                    class="p-1 rounded-lg text-text-muted hover:text-text-primary transition cursor-pointer"
                 >
                     <X class="w-5 h-5" />
                 </button>
@@ -83,10 +83,10 @@ function removeItem(orderItemId: number) {
                         @click="selectedCategory = cat"
                         type="button"
                         :class="[
-                            'px-3.5 py-1.5 rounded-lg text-xs font-bold uppercase transition cursor-pointer',
+                            'px-3.5 py-1.5 rounded-lg text-xs font-semibold uppercase transition cursor-pointer border',
                             selectedCategory === cat
-                                ? 'bg-purple-600 text-white shadow-md'
-                                : 'bg-slate-800/80 text-slate-400 hover:text-white hover:bg-slate-700'
+                                ? 'bg-surface-border text-text-primary border-surface-border'
+                                : 'bg-surface-overlay text-text-muted hover:text-text-secondary border-transparent'
                         ]"
                     >
                         {{ cat }}
@@ -95,28 +95,28 @@ function removeItem(orderItemId: number) {
 
                 <!-- Products Grid -->
                 <div>
-                    <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">
+                    <h4 class="text-xs font-semibold uppercase tracking-wider text-text-muted mb-3">
                         Select Retail Product
                     </h4>
                     <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
                         <div
                             v-for="prod in filteredProducts"
                             :key="prod.id"
-                            class="p-3 rounded-xl bg-[#090d16] border border-slate-800 flex flex-col justify-between gap-3 hover:border-purple-500/50 transition group"
+                            class="p-3 rounded-lg bg-surface-elevated hover:bg-surface-border active:bg-surface-border border border-surface-border-subtle flex flex-col justify-between gap-3 transition"
                         >
                             <div>
-                                <span class="text-xs text-purple-400 uppercase font-bold">{{ prod.category }}</span>
-                                <h5 class="text-sm font-bold text-white leading-tight mt-0.5">{{ prod.name }}</h5>
-                                <p class="text-xs text-slate-400 mt-1 font-mono">Stock: {{ prod.stock_quantity }}</p>
+                                <span class="text-xs text-text-muted uppercase font-semibold">{{ prod.category }}</span>
+                                <h5 class="text-sm font-semibold text-text-primary leading-tight mt-0.5">{{ prod.name }}</h5>
+                                <p class="text-xs text-text-muted mt-1 font-mono tabular-nums">Stock: {{ prod.stock_quantity }}</p>
                             </div>
-                            <div class="flex items-center justify-between pt-2 border-t border-slate-800">
-                                <span class="text-sm font-bold text-sky-400 font-mono">
+                            <div class="flex items-center justify-between pt-2 border-t border-surface-border-subtle">
+                                <span class="text-sm font-semibold text-text-primary font-mono tabular-nums">
                                     {{ prod.price_lyd.toFixed(3) }} LYD
                                 </span>
                                 <button
                                     @click="addItem(prod, 1)"
                                     type="button"
-                                    class="p-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white shadow transition cursor-pointer"
+                                    class="p-1.5 rounded-lg bg-surface-overlay hover:bg-surface-border text-text-secondary border border-surface-border-subtle transition cursor-pointer"
                                     title="Add 1 to Session"
                                 >
                                     <Plus class="w-4 h-4" />
@@ -128,30 +128,30 @@ function removeItem(orderItemId: number) {
 
                 <!-- Current Session Retail Items List -->
                 <div v-if="station.active_session?.order_items?.length">
-                    <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2 flex items-center justify-between">
+                    <h4 class="text-xs font-semibold uppercase tracking-wider text-text-muted mb-2 flex items-center justify-between">
                         <span>Items on Tab:</span>
-                        <span class="text-purple-300 font-mono">
+                        <span class="text-text-secondary font-mono tabular-nums">
                             Subtotal: {{ station.active_session.retail_amount_lyd.toFixed(3) }} LYD
                         </span>
                     </h4>
-                    <div class="bg-[#090d16] rounded-xl border border-slate-800 divide-y divide-slate-800/60 overflow-hidden">
+                    <div class="bg-surface-overlay rounded-xl border border-surface-border-subtle divide-y divide-surface-border-subtle overflow-hidden">
                         <div
                             v-for="item in station.active_session.order_items"
                             :key="item.id"
                             class="px-4 py-2.5 flex items-center justify-between text-xs"
                         >
                             <div class="flex items-center gap-2">
-                                <span class="font-bold text-purple-400 font-mono">{{ item.quantity }}x</span>
-                                <span class="text-white font-medium">{{ item.item_name }}</span>
+                                <span class="font-semibold text-text-secondary font-mono tabular-nums">{{ item.quantity }}x</span>
+                                <span class="text-text-primary font-medium">{{ item.item_name }}</span>
                             </div>
                             <div class="flex items-center gap-3">
-                                <span class="font-mono text-slate-300 font-bold">
+                                <span class="font-mono text-text-primary font-semibold tabular-nums">
                                     {{ item.subtotal_lyd.toFixed(3) }} LYD
                                 </span>
                                 <button
                                     @click="removeItem(item.id)"
                                     type="button"
-                                    class="p-1 text-slate-500 hover:text-rose-400 transition cursor-pointer"
+                                    class="p-1 text-text-muted hover:text-status-rogue transition cursor-pointer"
                                     title="Remove from tab"
                                 >
                                     <Trash2 class="w-3.5 h-3.5" />
@@ -163,11 +163,11 @@ function removeItem(orderItemId: number) {
             </div>
 
             <!-- Footer -->
-            <div class="px-6 py-3 bg-[#1e293b]/70 border-t border-slate-800 flex justify-end">
+            <div class="px-6 py-3 border-t border-surface-border-subtle flex justify-end">
                 <button
                     @click="emit('close')"
                     type="button"
-                    class="py-2 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs transition cursor-pointer"
+                    class="py-2 px-4 rounded-lg bg-surface-elevated hover:bg-surface-border text-text-secondary border border-surface-border-subtle font-semibold text-xs transition cursor-pointer"
                 >
                     Done
                 </button>

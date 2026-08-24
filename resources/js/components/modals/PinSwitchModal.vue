@@ -57,19 +57,19 @@ function submit() {
 
 <template>
     <div v-if="show" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-        <div class="w-full max-w-xs bg-[#0f172a] border border-slate-700 rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+        <div class="w-full max-w-xs bg-surface-elevated border border-surface-border rounded-2xl shadow-xl overflow-hidden flex flex-col">
             <!-- Header -->
-            <div class="px-5 py-3.5 bg-[#1e293b]/70 border-b border-slate-800 flex items-center justify-between">
+            <div class="px-5 py-3.5 border-b border-surface-border-subtle flex items-center justify-between">
                 <div class="flex items-center gap-2">
-                    <KeyRound class="w-4 h-4 text-sky-400" />
-                    <h3 class="text-sm font-bold text-white">
+                    <KeyRound class="w-4 h-4 text-text-muted" />
+                    <h3 class="text-base font-semibold text-text-primary">
                         Enter 4-Digit Staff PIN
                     </h3>
                 </div>
                 <button
                     @click="emit('close')"
                     type="button"
-                    class="p-1 rounded-lg text-slate-400 hover:text-white transition cursor-pointer"
+                    class="p-1 rounded-lg text-text-muted hover:text-text-primary transition cursor-pointer"
                 >
                     <X class="w-4 h-4" />
                 </button>
@@ -84,16 +84,16 @@ function submit() {
                         :class="[
                             'w-4 h-4 rounded-full border transition-all duration-150',
                             pin.length >= i
-                                ? 'bg-sky-400 border-sky-400 scale-110 shadow-md shadow-sky-400/50'
-                                : 'bg-slate-900 border-slate-700'
+                                ? 'bg-brand-primary border-brand-primary'
+                                : 'bg-surface-overlay border-surface-border'
                         ]"
                     ></div>
                 </div>
 
-                <p v-if="errorMessage" class="text-xs font-bold text-rose-400 text-center animate-shake">
+                <p v-if="errorMessage" class="text-xs font-semibold text-status-rogue text-center">
                     {{ errorMessage }}
                 </p>
-                <p v-else class="text-[11px] text-slate-400 text-center">
+                <p v-else class="text-xs text-text-muted text-center">
                     Default PINs: Nick (1234), Admin (9999)
                 </p>
 
@@ -104,9 +104,9 @@ function submit() {
                         :key="key"
                         @click="pressKey(key)"
                         type="button"
-                        class="h-12 rounded-xl bg-slate-900 hover:bg-slate-800 active:bg-sky-600 border border-slate-800 text-white font-mono text-lg font-bold flex items-center justify-center transition shadow cursor-pointer select-none"
+                        class="h-12 rounded-lg bg-surface-elevated hover:bg-surface-border active:bg-surface-border border border-surface-border-subtle text-text-primary font-mono text-lg font-semibold flex items-center justify-center transition cursor-pointer select-none"
                     >
-                        <Delete v-if="key === '⌫'" class="w-5 h-5 text-slate-400" />
+                        <Delete v-if="key === '⌫'" class="w-5 h-5 text-text-muted" />
                         <span v-else>{{ key }}</span>
                     </button>
                 </div>

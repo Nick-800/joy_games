@@ -70,19 +70,19 @@ function submitClose() {
 
 <template>
     <div v-if="show" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-        <div class="w-full max-w-lg bg-[#0f172a] border border-slate-700 rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+        <div class="w-full max-w-lg bg-surface-elevated border border-surface-border rounded-2xl shadow-xl overflow-hidden flex flex-col">
             <!-- Header -->
-            <div class="px-6 py-4 bg-[#1e293b]/70 border-b border-slate-800 flex items-center justify-between">
+            <div class="px-6 py-4 border-b border-surface-border-subtle flex items-center justify-between">
                 <div class="flex items-center gap-2">
-                    <Wallet class="w-5 h-5 text-amber-400" />
-                    <h3 class="text-lg font-bold text-white">
+                    <Wallet class="w-5 h-5 text-text-muted" />
+                    <h3 class="text-base font-semibold text-text-primary">
                         Shift & Cash Drawer Management
                     </h3>
                 </div>
                 <button
                     @click="emit('close')"
                     type="button"
-                    class="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+                    class="p-1 rounded-lg text-text-muted hover:text-text-primary transition cursor-pointer"
                 >
                     <X class="w-5 h-5" />
                 </button>
@@ -92,36 +92,36 @@ function submitClose() {
             <div class="p-6 flex flex-col gap-5">
                 <!-- 1. SUMMARY VIEW (If Shift Open) -->
                 <template v-if="activeShift && mode === 'summary'">
-                    <div class="p-4 rounded-xl bg-[#090d16] border border-slate-800 flex flex-col gap-3 font-sans text-xs">
-                        <div class="flex justify-between items-center pb-2 border-b border-slate-800">
-                            <span class="font-bold text-white text-sm">Active Shift: {{ activeShift.cashier_name }}</span>
-                            <span class="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/40 text-[10px]">
+                    <div class="p-4 rounded-xl bg-surface-overlay border border-surface-border-subtle flex flex-col gap-3 font-sans text-xs">
+                        <div class="flex justify-between items-center pb-2 border-b border-surface-border-subtle">
+                            <span class="font-semibold text-text-primary text-sm">Active Shift: {{ activeShift.cashier_name }}</span>
+                            <span class="px-2 py-0.5 rounded-full bg-status-available/15 text-status-available font-semibold border border-status-available/40 text-xs">
                                 OPEN
                             </span>
                         </div>
 
                         <div class="grid grid-cols-2 gap-3 pt-1">
-                            <div class="p-2.5 rounded-lg bg-slate-900 border border-slate-800">
-                                <span class="text-slate-400 block">Opening Float:</span>
-                                <span class="text-base font-bold text-white font-mono">{{ activeShift.opening_float_lyd.toFixed(3) }} LYD</span>
+                            <div class="p-2.5 rounded-lg bg-surface-overlay border border-surface-border-subtle">
+                                <span class="text-text-muted block">Opening Float:</span>
+                                <span class="text-base font-semibold text-text-primary font-mono tabular-nums">{{ activeShift.opening_float_lyd.toFixed(3) }} LYD</span>
                             </div>
-                            <div class="p-2.5 rounded-lg bg-slate-900 border border-slate-800">
-                                <span class="text-slate-400 block">Cash Collected:</span>
-                                <span class="text-base font-bold text-emerald-400 font-mono">+{{ activeShift.cash_collected_lyd.toFixed(3) }} LYD</span>
+                            <div class="p-2.5 rounded-lg bg-surface-overlay border border-surface-border-subtle">
+                                <span class="text-text-muted block">Cash Collected:</span>
+                                <span class="text-base font-semibold text-status-available font-mono tabular-nums">+{{ activeShift.cash_collected_lyd.toFixed(3) }} LYD</span>
                             </div>
-                            <div class="p-2.5 rounded-lg bg-slate-900 border border-slate-800">
-                                <span class="text-slate-400 block">Card / Digital:</span>
-                                <span class="text-base font-bold text-sky-400 font-mono">{{ activeShift.card_collected_lyd.toFixed(3) }} LYD</span>
+                            <div class="p-2.5 rounded-lg bg-surface-overlay border border-surface-border-subtle">
+                                <span class="text-text-muted block">Card / Digital:</span>
+                                <span class="text-base font-semibold text-text-primary font-mono tabular-nums">{{ activeShift.card_collected_lyd.toFixed(3) }} LYD</span>
                             </div>
-                            <div class="p-2.5 rounded-lg bg-slate-900 border border-slate-800">
-                                <span class="text-slate-400 block">Completed Sessions:</span>
-                                <span class="text-base font-bold text-purple-300 font-mono">{{ activeShift.completed_sessions_count }}</span>
+                            <div class="p-2.5 rounded-lg bg-surface-overlay border border-surface-border-subtle">
+                                <span class="text-text-muted block">Completed Sessions:</span>
+                                <span class="text-base font-semibold text-text-primary font-mono tabular-nums">{{ activeShift.completed_sessions_count }}</span>
                             </div>
                         </div>
 
-                        <div class="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 flex justify-between items-center mt-2">
-                            <span class="font-bold text-amber-300 text-sm">Expected Cash in Drawer:</span>
-                            <span class="text-xl font-bold font-mono text-amber-200">{{ activeShift.expected_current_cash_lyd.toFixed(3) }} LYD</span>
+                        <div class="p-3.5 rounded-xl bg-status-warning/10 border border-status-warning/30 flex justify-between items-center mt-2">
+                            <span class="font-semibold text-status-warning text-sm">Expected Cash in Drawer:</span>
+                            <span class="text-xl font-semibold font-mono tabular-nums text-status-warning">{{ activeShift.expected_current_cash_lyd.toFixed(3) }} LYD</span>
                         </div>
                     </div>
 
@@ -129,7 +129,7 @@ function submitClose() {
                     <button
                         @click="mode = 'close'"
                         type="button"
-                        class="w-full py-3 px-4 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-sm shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
+                        class="w-full py-3 px-4 rounded-lg bg-status-rogue hover:brightness-110 text-text-primary font-semibold text-sm transition flex items-center justify-center gap-2 cursor-pointer"
                     >
                         <Lock class="w-4 h-4" /> Close Shift (Blind Cash Drop)
                     </button>
@@ -138,13 +138,13 @@ function submitClose() {
                 <!-- 2. CLOSE SHIFT BLIND DROP VIEW -->
                 <template v-else-if="mode === 'close'">
                     <div class="flex flex-col gap-4">
-                        <div class="p-3.5 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-300">
-                            <p class="font-bold text-white mb-1">Blind Cash Drop Reconciliation:</p>
+                        <div class="p-3.5 rounded-xl bg-surface-overlay border border-surface-border-subtle text-xs text-text-secondary">
+                            <p class="font-semibold text-text-primary mb-1">Blind Cash Drop Reconciliation:</p>
                             <p>Count all physical Libyan Dinar cash currently present in the drawer and enter the sum below.</p>
                         </div>
 
                         <div>
-                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">
+                            <label class="block text-xs font-semibold uppercase tracking-wider text-text-muted mb-1">
                                 Physical Cash Counted (LYD)
                             </label>
                             <input
@@ -152,17 +152,17 @@ function submitClose() {
                                 type="number"
                                 step="1"
                                 min="0"
-                                class="w-full px-3.5 py-3 bg-[#090d16] border border-slate-700 rounded-xl text-white font-mono text-xl font-bold focus:outline-none focus:border-amber-500"
+                                class="w-full px-3.5 py-3 bg-surface-canvas border border-surface-border-subtle rounded-lg text-text-primary font-mono text-xl font-semibold focus:outline-none focus:border-brand-primary placeholder:text-text-muted"
                                 placeholder="0.000"
                             />
                         </div>
 
-                        <div class="p-3.5 rounded-xl bg-[#090d16] border border-slate-800 flex justify-between items-center text-xs">
-                            <span class="text-slate-400">Cash Difference (Discrepancy):</span>
+                        <div class="p-3.5 rounded-xl bg-surface-overlay border border-surface-border-subtle flex justify-between items-center text-xs">
+                            <span class="text-text-muted">Cash Difference (Discrepancy):</span>
                             <span
                                 :class="[
-                                    'font-mono text-base font-bold',
-                                    calculatedDifferenceLyd === 0 ? 'text-emerald-400' : (calculatedDifferenceLyd > 0 ? 'text-sky-400' : 'text-rose-400')
+                                    'font-mono text-base font-semibold tabular-nums',
+                                    calculatedDifferenceLyd === 0 ? 'text-text-muted' : (calculatedDifferenceLyd > 0 ? 'text-status-available' : 'text-status-rogue')
                                 ]"
                             >
                                 {{ calculatedDifferenceLyd > 0 ? '+' : '' }}{{ calculatedDifferenceLyd.toFixed(3) }} LYD
@@ -176,14 +176,14 @@ function submitClose() {
                             <button
                                 @click="mode = 'summary'"
                                 type="button"
-                                class="flex-1 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs transition cursor-pointer"
+                                class="flex-1 py-3 rounded-lg bg-surface-elevated hover:bg-surface-border text-text-secondary border border-surface-border-subtle font-semibold text-xs transition cursor-pointer"
                             >
                                 Back
                             </button>
                             <button
                                 @click="submitClose"
                                 type="button"
-                                class="flex-2 py-3 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-sm shadow-md transition cursor-pointer"
+                                class="flex-2 py-3 rounded-lg bg-status-rogue hover:brightness-110 text-text-primary font-semibold text-sm transition cursor-pointer"
                             >
                                 Confirm & End Shift
                             </button>
@@ -194,13 +194,13 @@ function submitClose() {
                 <!-- 3. OPEN NEW SHIFT VIEW -->
                 <template v-else>
                     <div class="flex flex-col gap-4">
-                        <div class="p-3.5 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-300">
-                            <p class="font-bold text-white mb-1">Open Cashier Shift:</p>
+                        <div class="p-3.5 rounded-xl bg-surface-overlay border border-surface-border-subtle text-xs text-text-secondary">
+                            <p class="font-semibold text-text-primary mb-1">Open Cashier Shift:</p>
                             <p>Enter the opening cash float placed into the drawer at shift start.</p>
                         </div>
 
                         <div>
-                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">
+                            <label class="block text-xs font-semibold uppercase tracking-wider text-text-muted mb-1">
                                 Opening Float Amount (LYD)
                             </label>
                             <input
@@ -208,7 +208,7 @@ function submitClose() {
                                 type="number"
                                 step="10"
                                 min="0"
-                                class="w-full px-3.5 py-3 bg-[#090d16] border border-slate-700 rounded-xl text-white font-mono text-xl font-bold focus:outline-none focus:border-sky-500"
+                                class="w-full px-3.5 py-3 bg-surface-canvas border border-surface-border-subtle rounded-lg text-text-primary font-mono text-xl font-semibold focus:outline-none focus:border-brand-primary placeholder:text-text-muted"
                                 placeholder="150.000"
                             />
                         </div>
@@ -216,7 +216,7 @@ function submitClose() {
                         <button
                             @click="submitOpen"
                             type="button"
-                            class="w-full py-3.5 px-4 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-sm shadow-md transition flex items-center justify-center gap-2 cursor-pointer mt-2"
+                            class="w-full py-3.5 px-4 rounded-lg bg-brand-primary hover:bg-brand-primary-hover text-text-primary font-semibold text-sm transition flex items-center justify-center gap-2 cursor-pointer mt-2"
                         >
                             <Unlock class="w-4 h-4" /> Open New Shift
                         </button>
