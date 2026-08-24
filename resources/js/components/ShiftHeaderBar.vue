@@ -40,64 +40,63 @@ onUnmounted(() => {
 </script>
 
 <template>
-    <header class="sticky top-0 z-40 bg-[#0f172a]/95 backdrop-blur-md border-b border-[#1e293b] px-4 lg:px-6 py-3 shadow-xl">
+    <header class="sticky top-0 z-40 bg-surface-elevated/95 backdrop-blur-md border-b border-surface-border-subtle px-4 lg:px-6 py-3 shadow-sm">
         <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
             <!-- Brand & Lounge Logo -->
             <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-sky-500/20 ring-1 ring-white/20">
-                    <Gamepad2 class="w-6 h-6 text-white" />
+                <div class="w-10 h-10 rounded-lg bg-brand-primary flex items-center justify-center">
+                    <Gamepad2 class="w-6 h-6" />
                 </div>
                 <div>
                     <div class="flex items-center gap-2">
-                        <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
+                        <h1 class="text-lg font-semibold tracking-tight text-text-primary flex items-center gap-2">
                             JOY GAMES
-                            <span class="text-xs px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-400 font-semibold border border-sky-500/30">
+                            <span class="text-xs px-2 py-0.5 rounded-full bg-surface-overlay text-text-muted font-semibold border border-surface-border-subtle">
                                 PS5 LOUNGE
                             </span>
                         </h1>
                     </div>
-                    <p class="text-xs text-slate-400 font-medium">Local-First Hardware Automation & Sliced Billing</p>
                 </div>
             </div>
 
             <!-- Central Operational Badges -->
             <div class="flex items-center gap-2 sm:gap-3 flex-wrap">
                 <!-- Clock -->
-                <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#090d16] border border-[#1e293b] text-slate-300 text-xs font-mono tabular-nums shadow-inner">
-                    <Clock class="w-3.5 h-3.5 text-sky-400" />
+                <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-overlay border border-surface-border-subtle text-text-secondary text-xs font-mono tabular-nums">
+                    <Clock class="w-3.5 h-3.5 text-text-muted" />
                     <span>{{ currentTime }}</span>
                 </div>
 
                 <!-- Active Stations KPI -->
-                <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#090d16] border border-[#1e293b] text-xs font-medium text-slate-300">
-                    <Activity class="w-3.5 h-3.5 text-emerald-400" />
+                <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-overlay border border-surface-border-subtle text-xs font-medium text-text-secondary">
+                    <Activity class="w-3.5 h-3.5 text-text-muted" />
                     <span>Stations:</span>
-                    <span class="font-bold text-white tabular-nums">{{ activeStationsCount }} / {{ totalStationsCount }}</span>
+                    <span class="font-semibold text-text-primary tabular-nums">{{ activeStationsCount }} / {{ totalStationsCount }}</span>
                 </div>
 
                 <!-- Active Shift Drawer Float -->
                 <button
                     @click="emit('openShiftModal')"
                     type="button"
-                    class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#090d16] hover:bg-[#1e293b] border border-[#1e293b] hover:border-slate-600 transition text-xs text-slate-300 cursor-pointer group"
+                    class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-overlay hover:bg-surface-border border border-surface-border-subtle transition text-xs text-text-secondary cursor-pointer"
                 >
-                    <Wallet class="w-3.5 h-3.5 text-amber-400 group-hover:scale-110 transition" />
-                    <span class="text-slate-400">Shift Float:</span>
-                    <span v-if="activeShift" class="font-bold text-amber-300 tabular-nums">
+                    <Wallet class="w-3.5 h-3.5 text-text-muted" />
+                    <span class="text-text-muted">Shift Float:</span>
+                    <span v-if="activeShift" class="font-semibold text-text-primary tabular-nums">
                         {{ activeShift.opening_float_lyd.toFixed(3) }} LYD
                     </span>
-                    <span v-else class="text-rose-400 font-semibold">No Open Shift</span>
+                    <span v-else class="text-status-rogue font-semibold">No Open Shift</span>
                 </button>
 
                 <!-- Active Staff Switcher -->
                 <button
                     @click="emit('openPinModal')"
                     type="button"
-                    class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/30 text-sky-300 hover:text-white transition text-xs font-medium cursor-pointer"
+                    class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-elevated hover:bg-surface-border text-text-secondary border border-surface-border-subtle transition text-xs font-medium cursor-pointer"
                 >
-                    <User class="w-3.5 h-3.5 text-sky-400" />
+                    <User class="w-3.5 h-3.5 text-text-muted" />
                     <span>{{ activeShift?.cashier_name ?? 'Staff Switch' }}</span>
-                    <KeyRound class="w-3 h-3 text-sky-400/70 ml-1" />
+                    <KeyRound class="w-3 h-3 text-text-muted ml-1" />
                 </button>
             </div>
 
@@ -109,16 +108,12 @@ onUnmounted(() => {
                     :class="[
                         'flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition shadow-sm cursor-pointer',
                         simulatorOpen
-                            ? 'bg-amber-500 text-slate-950 ring-2 ring-amber-400/50'
-                            : 'bg-[#1e293b] hover:bg-[#334155] text-slate-200 border border-slate-700'
+                            ? 'bg-brand-primary text-text-primary'
+                            : 'bg-surface-elevated hover:bg-surface-border text-text-secondary border border-surface-border-subtle'
                     ]"
                 >
                     <Cpu class="w-4 h-4" />
-                    <span>⚙️ Dev Simulator</span>
-                    <span
-                        v-if="simulatorOpen"
-                        class="w-2 h-2 rounded-full bg-slate-950 animate-ping"
-                    ></span>
+                    <span>Dev Simulator</span>
                 </button>
             </div>
         </div>
