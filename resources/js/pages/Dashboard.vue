@@ -1,17 +1,17 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
 import { usePoll, router } from '@inertiajs/vue3';
-import ShiftHeaderBar from '../components/ShiftHeaderBar.vue';
-import StationCard, { type StationData } from '../components/StationCard.vue';
-import StartSessionModal from '../components/modals/StartSessionModal.vue';
-import AddRetailItemModal from '../components/modals/AddRetailItemModal.vue';
-import SwitchTierModal from '../components/modals/SwitchTierModal.vue';
-import CheckoutInvoiceModal from '../components/modals/CheckoutInvoiceModal.vue';
-import ShiftModal from '../components/modals/ShiftModal.vue';
-import PinSwitchModal from '../components/modals/PinSwitchModal.vue';
-import TransferModal from '../components/modals/TransferModal.vue';
-import HardwareSimulatorDrawer from '../components/simulator/HardwareSimulatorDrawer.vue';
 import { TriangleAlert } from 'lucide-vue-next';
+import { ref, computed } from 'vue';
+import AddRetailItemModal from '../components/modals/AddRetailItemModal.vue';
+import CheckoutInvoiceModal from '../components/modals/CheckoutInvoiceModal.vue';
+import PinSwitchModal from '../components/modals/PinSwitchModal.vue';
+import ShiftModal from '../components/modals/ShiftModal.vue';
+import StartSessionModal from '../components/modals/StartSessionModal.vue';
+import SwitchTierModal from '../components/modals/SwitchTierModal.vue';
+import TransferModal from '../components/modals/TransferModal.vue';
+import ShiftHeaderBar from '../components/ShiftHeaderBar.vue';
+import HardwareSimulatorDrawer from '../components/simulator/HardwareSimulatorDrawer.vue';
+import StationCard, { type StationData } from '../components/StationCard.vue';
 
 interface PricingTierItem {
     id: number;
