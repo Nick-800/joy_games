@@ -114,10 +114,16 @@ class SessionManager
 
             if ($activeInterval) {
                 $duration = max(0, $activeInterval->started_at->diffInSeconds($now));
+                $pauseSeconds = max(0, (int) $session->total_paused_seconds);
+                if ($session->isPaused() && $session->paused_at) {
+                    $duration = max(0, $activeInterval->started_at->diffInSeconds($session->paused_at));
+                    $pauseSeconds = max(0, $pauseSeconds - max(0, (int) $session->paused_at->diffInSeconds($now)));
+                }
                 $calc = $this->rateEngine->calculateIntervalSubtotal(
                     $duration,
                     $activeInterval->rate_per_hour_millimes,
-                    (float) $activeInterval->station_multiplier
+                    (float) $activeInterval->station_multiplier,
+                    $pauseSeconds
                 );
 
                 $activeInterval->update([
@@ -243,10 +249,16 @@ class SessionManager
             $activeInterval = $session->activeInterval;
             if ($activeInterval) {
                 $duration = max(0, $activeInterval->started_at->diffInSeconds($now));
+                $pauseSeconds = max(0, (int) $session->total_paused_seconds);
+                if ($session->isPaused() && $session->paused_at) {
+                    $duration = max(0, $activeInterval->started_at->diffInSeconds($session->paused_at));
+                    $pauseSeconds = max(0, $pauseSeconds - max(0, (int) $session->paused_at->diffInSeconds($now)));
+                }
                 $calc = $this->rateEngine->calculateIntervalSubtotal(
                     $duration,
                     $activeInterval->rate_per_hour_millimes,
-                    (float) $activeInterval->station_multiplier
+                    (float) $activeInterval->station_multiplier,
+                    $pauseSeconds
                 );
 
                 $activeInterval->update([
@@ -311,6 +323,12 @@ class SessionManager
 
             $finalTotal = max(0, $totals['time_amount_millimes'] + $totals['retail_amount_millimes'] - $discountMillimes);
             $change = $paymentMethod === 'cash' ? max(0, $cashReceivedMillimes - $finalTotal) : 0;
+
+            if (in_array($paymentMethod, ['cash', 'split'], true) && $cashReceivedMillimes < $finalTotal && $discountMillimes <= 0) {
+                throw new \InvalidArgumentException(
+                    "Cash received ({$cashReceivedMillimes} millimes) is below final total ({$finalTotal} millimes)."
+                );
+            }
 
             $session->update([
                 'status' => 'completed',

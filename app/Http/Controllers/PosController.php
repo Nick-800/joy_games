@@ -21,6 +21,12 @@ class PosController extends Controller
         $product = Product::findOrFail($validated['product_id']);
         $shift = Shift::active();
 
+        if ($product->stock_quantity < $validated['quantity']) {
+            return back()->withErrors([
+                'quantity' => "Insufficient stock for {$product->name}. Available: {$product->stock_quantity}, requested: {$validated['quantity']}.",
+            ]);
+        }
+
         $subtotal = $product->price_millimes * $validated['quantity'];
 
         OrderItem::create([
@@ -33,10 +39,7 @@ class PosController extends Controller
             'subtotal_millimes' => $subtotal,
         ]);
 
-        // Decrement stock if positive
-        if ($product->stock_quantity >= $validated['quantity']) {
-            $product->decrement('stock_quantity', $validated['quantity']);
-        }
+        $product->decrement('stock_quantity', $validated['quantity']);
 
         return back()->with('success', "Added {$validated['quantity']}x {$product->name}");
     }

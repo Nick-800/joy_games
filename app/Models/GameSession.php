@@ -30,6 +30,8 @@ use Illuminate\Support\Carbon;
  * @property int $retail_amount_millimes
  * @property int $discount_amount_millimes
  * @property int $final_total_millimes
+ * @property int|null $previous_final_total_millimes
+ * @property Carbon|null $recomputed_at
  * @property string $payment_status
  * @property string|null $payment_method
  * @property int|null $cash_received_millimes
@@ -57,6 +59,8 @@ use Illuminate\Support\Carbon;
     'retail_amount_millimes',
     'discount_amount_millimes',
     'final_total_millimes',
+    'previous_final_total_millimes',
+    'recomputed_at',
     'payment_status',
     'payment_method',
     'cash_received_millimes',
@@ -80,9 +84,20 @@ class GameSession extends Model
             'retail_amount_millimes' => 'integer',
             'discount_amount_millimes' => 'integer',
             'final_total_millimes' => 'integer',
+            'previous_final_total_millimes' => 'integer',
+            'recomputed_at' => 'datetime',
             'cash_received_millimes' => 'integer',
             'cash_change_millimes' => 'integer',
         ];
+    }
+
+    public function recomputedDeltaMillimes(): ?int
+    {
+        if ($this->previous_final_total_millimes === null) {
+            return null;
+        }
+
+        return $this->previous_final_total_millimes - $this->final_total_millimes;
     }
 
     public function station(): BelongsTo

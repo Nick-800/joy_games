@@ -50,6 +50,8 @@ class DatabaseSeeder extends Seeder
             'rogue_auto_sleep_seconds' => 120, // 2 minutes auto-cutoff safeguard
             'currency_code' => 'LYD',
             'currency_symbol' => 'د.ل',
+            'timezone' => 'Africa/Tripoli',
+            'prepaid_overtime_grace_minutes' => 5,
             'allow_overtime_default' => true,
         ]);
 

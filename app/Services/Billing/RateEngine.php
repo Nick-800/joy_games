@@ -13,7 +13,8 @@ class RateEngine
     public function calculateIntervalSubtotal(
         int $durationSeconds,
         int $hourlyRateMillimes,
-        float $stationMultiplier = 1.00
+        float $stationMultiplier = 1.00,
+        int $pauseSecondsToSubtract = 0
     ): array {
         if ($durationSeconds <= 0) {
             return [
@@ -23,12 +24,14 @@ class RateEngine
             ];
         }
 
-        $billableMinutes = (int) ceil($durationSeconds / 60);
+        $billableSeconds = max(0, $durationSeconds - max(0, $pauseSecondsToSubtract));
+        $billableMinutes = (int) ceil($billableSeconds / 60);
         $hourlyRateEffective = $hourlyRateMillimes * $stationMultiplier;
         $subtotalMillimes = (int) round(($billableMinutes / 60) * $hourlyRateEffective);
 
         return [
             'duration_seconds' => $durationSeconds,
+            'billable_seconds' => $billableSeconds,
             'billable_minutes' => $billableMinutes,
             'subtotal_millimes' => $subtotalMillimes,
         ];
@@ -36,6 +39,10 @@ class RateEngine
 
     /**
      * Compute real-time or final session totals for a given session.
+     *
+     * Pause-aware: every interval calculation subtracts the session's
+     * accumulated `total_paused_seconds` so customers are not billed for
+     * time their station clock was frozen.
      */
     public function calculateSessionTotal(GameSession $session, ?\DateTimeInterface $targetNow = null): array
     {
@@ -44,26 +51,34 @@ class RateEngine
         $intervals = $session->intervals()->with('pricingTier')->get();
 
         $totalDurationSeconds = 0;
+        $totalBillableSeconds = 0;
         $intervalsData = [];
         $calculatedTimeSubtotalMillimes = 0;
+
+        $pausedSeconds = max(0, (int) $session->total_paused_seconds);
+        $isCurrentlyPaused = $session->isPaused() && $session->paused_at;
 
         foreach ($intervals as $interval) {
             $isOngoing = is_null($interval->ended_at);
             $endTime = $isOngoing ? $now : $interval->ended_at;
 
-            // If session is paused and currently on this interval, don't count paused time
             $durationSeconds = max(0, $interval->started_at->diffInSeconds($endTime));
-            if ($isOngoing && $session->isPaused() && $session->paused_at) {
+
+            $pauseSeconds = $pausedSeconds;
+            if ($isOngoing && $isCurrentlyPaused) {
+                $pauseSeconds = max(0, $pausedSeconds - max(0, (int) $session->paused_at->diffInSeconds($now)));
                 $durationSeconds = max(0, $interval->started_at->diffInSeconds($session->paused_at));
             }
 
             $calc = $this->calculateIntervalSubtotal(
                 $durationSeconds,
                 $interval->rate_per_hour_millimes,
-                (float) $interval->station_multiplier
+                (float) $interval->station_multiplier,
+                $pauseSeconds
             );
 
             $totalDurationSeconds += $calc['duration_seconds'];
+            $totalBillableSeconds += $calc['billable_seconds'];
             $calculatedTimeSubtotalMillimes += $calc['subtotal_millimes'];
 
             $intervalsData[] = [
@@ -74,21 +89,20 @@ class RateEngine
                 'started_at' => $interval->started_at->toIso8601String(),
                 'ended_at' => $interval->ended_at?->toIso8601String(),
                 'duration_seconds' => $calc['duration_seconds'],
+                'billable_seconds' => $calc['billable_seconds'],
                 'billable_minutes' => $calc['billable_minutes'],
                 'subtotal_millimes' => $calc['subtotal_millimes'],
                 'is_ongoing' => $isOngoing,
             ];
         }
 
-        $totalMinutes = (int) ceil($totalDurationSeconds / 60);
+        $totalMinutes = (int) ceil($totalBillableSeconds / 60);
 
-        // Apply Grace Period Rule
         if ($totalMinutes <= $rule->grace_period_minutes && ($session->isCompleted() || $session->status === 'cancelled')) {
             $finalTimeAmountMillimes = 0;
         } else {
             $finalTimeAmountMillimes = $calculatedTimeSubtotalMillimes;
 
-            // Apply Minimum Charge for Postpaid if beyond grace period
             if ($session->isPostpaid() && $totalMinutes > $rule->grace_period_minutes) {
                 $firstTier = $intervals->first()?->pricingTier;
                 $baseRate = $firstTier ? $firstTier->hourly_rate_millimes : 6000;
@@ -99,17 +113,15 @@ class RateEngine
             }
         }
 
-        // Retail Add-ons Total
         $retailSubtotalMillimes = (int) $session->orderItems()->sum('subtotal_millimes');
 
-        // Discount
         $discountMillimes = $session->discount_amount_millimes ?? 0;
 
-        // Final Total
         $finalTotalMillimes = max(0, $finalTimeAmountMillimes + $retailSubtotalMillimes - $discountMillimes);
 
         return [
             'total_duration_seconds' => $totalDurationSeconds,
+            'total_billable_seconds' => $totalBillableSeconds,
             'total_billable_minutes' => $totalMinutes,
             'time_amount_millimes' => $finalTimeAmountMillimes,
             'time_amount_lyd' => $finalTimeAmountMillimes / 1000,

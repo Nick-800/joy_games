@@ -20,7 +20,9 @@ const availableDestinations = computed(() => {
 import { computed } from 'vue';
 
 function transfer(destId: number) {
-    if (!props.station?.active_session) return;
+    if (!props.station?.active_session) {
+return;
+}
 
     const form = useForm({
         destination_station_id: destId,

@@ -22,7 +22,7 @@ class ShiftController extends Controller
             'notes' => ['nullable', 'string', 'max:255'],
         ]);
 
-        $user = Auth::user() ?? User::where('role', 'cashier')->first() ?? User::first();
+        $user = $request->user();
         $this->shiftLedger->openShift($user, $validated['opening_float_millimes'], $validated['notes'] ?? null);
 
         return back()->with('success', 'Shift opened successfully');

@@ -57,11 +57,17 @@ class HardwareSimulatorController extends Controller
         $session = $station->activeSession;
 
         if ($session) {
-            $newStartedAt = $session->started_at->subMinutes($minutes);
-            $session->update(['started_at' => $newStartedAt]);
+            $session->update([
+                'started_at' => $session->started_at->copy()->subMinutes($minutes),
+                'paused_at' => $session->paused_at ? $session->paused_at->copy()->subMinutes($minutes) : null,
+            ]);
 
-            // Adjust first interval started_at as well
-            $session->intervals()->orderBy('id')->first()?->update(['started_at' => $newStartedAt]);
+            foreach ($session->intervals()->orderBy('id')->get() as $interval) {
+                $interval->update([
+                    'started_at' => $interval->started_at->copy()->subMinutes($minutes),
+                    'ended_at' => $interval->ended_at?->copy()->subMinutes($minutes),
+                ]);
+            }
 
             $this->reconciliationService->reconcileStation($station);
         }

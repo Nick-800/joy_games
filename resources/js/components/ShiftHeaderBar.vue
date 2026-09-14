@@ -1,6 +1,7 @@
 <script setup lang="ts">
+import { router, Link } from '@inertiajs/vue3';
+import { Gamepad2, User, Wallet, Clock, Activity, Cpu, KeyRound, LogOut, Receipt } from 'lucide-vue-next';
 import { ref, onMounted, onUnmounted } from 'vue';
-import { Gamepad2, User, Wallet, Clock, Activity, Cpu, KeyRound } from 'lucide-vue-next';
 
 const props = defineProps<{
     activeShift: {
@@ -13,6 +14,7 @@ const props = defineProps<{
     activeStationsCount: number;
     totalStationsCount: number;
     simulatorOpen: boolean;
+    currentUser?: { id: number; name: string; email: string; role: string } | null;
 }>();
 
 const emit = defineEmits<{
@@ -83,7 +85,7 @@ onUnmounted(() => {
                     <Wallet class="w-3.5 h-3.5 text-text-muted" />
                     <span class="text-text-muted">Shift Float:</span>
                     <span v-if="activeShift" class="font-semibold text-text-primary tabular-nums">
-                        {{ activeShift.opening_float_lyd.toFixed(3) }} LYD
+                        {{ activeShift.opening_float_lyd.toFixed(3) }}
                     </span>
                     <span v-else class="text-status-rogue font-semibold">No Open Shift</span>
                 </button>
@@ -102,6 +104,14 @@ onUnmounted(() => {
 
             <!-- Right Controls: Dev Simulator Toggle -->
             <div class="flex items-center gap-2">
+                <Link
+                    href="/reports"
+                    class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-surface-elevated hover:bg-surface-border text-text-secondary border border-surface-border-subtle transition cursor-pointer"
+                    title="View revenue reports"
+                >
+                    <Receipt class="w-3.5 h-3.5" />
+                    <span>Reports</span>
+                </Link>
                 <button
                     @click="emit('toggleSimulator')"
                     type="button"
@@ -114,6 +124,16 @@ onUnmounted(() => {
                 >
                     <Cpu class="w-4 h-4" />
                     <span>Dev Simulator</span>
+                </button>
+                <button
+                    v-if="currentUser"
+                    @click="router.post('/logout')"
+                    type="button"
+                    class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-surface-elevated hover:bg-status-rogue hover:text-text-primary text-text-secondary border border-surface-border-subtle transition cursor-pointer"
+                    title="Sign out"
+                >
+                    <LogOut class="w-3.5 h-3.5" />
+                    <span>Logout</span>
                 </button>
             </div>
         </div>

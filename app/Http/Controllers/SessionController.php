@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\GameSession;
 use App\Models\PricingTier;
 use App\Models\Station;
-use App\Models\User;
 use App\Services\Sessions\SessionManager;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -32,7 +31,7 @@ class SessionController extends Controller
 
         $station = Station::findOrFail($validated['station_id']);
         $tier = PricingTier::findOrFail($validated['pricing_tier_id']);
-        $cashier = auth()->user() ?? User::where('role', 'cashier')->first() ?? User::first();
+        $cashier = $request->user();
 
         $session = $this->sessionManager->startSession(
             station: $station,

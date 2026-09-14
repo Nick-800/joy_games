@@ -15,19 +15,33 @@ class ShiftLedger
      */
     public function openShift(User $user, int $openingFloatMillimes, ?string $notes = null): Shift
     {
-        // Close any dangling open shifts for safety
-        Shift::where('status', 'open')->update([
-            'status' => 'closed',
-            'ended_at' => now(),
-        ]);
+        return DB::transaction(function () use ($user, $openingFloatMillimes, $notes) {
+            $dangling = Shift::where('status', 'open')->get();
 
-        return Shift::create([
-            'user_id' => $user->id,
-            'started_at' => now(),
-            'opening_float_millimes' => $openingFloatMillimes,
-            'status' => 'open',
-            'notes' => $notes,
-        ]);
+            foreach ($dangling as $openShift) {
+                $expectedCash = $openShift->opening_float_millimes + (int) GameSession::where('shift_id', $openShift->id)
+                    ->where('payment_status', 'paid')
+                    ->where('payment_method', 'cash')
+                    ->sum('final_total_millimes');
+
+                $openShift->update([
+                    'status' => 'closed',
+                    'ended_at' => now(),
+                    'closing_cash_counted_millimes' => $expectedCash,
+                    'expected_cash_millimes' => $expectedCash,
+                    'cash_difference_millimes' => 0,
+                    'notes' => ($openShift->notes ? $openShift->notes."\n" : '').'Auto-closed by new shift open.',
+                ]);
+            }
+
+            return Shift::create([
+                'user_id' => $user->id,
+                'started_at' => now(),
+                'opening_float_millimes' => $openingFloatMillimes,
+                'status' => 'open',
+                'notes' => $notes,
+            ]);
+        });
     }
 
     /**
