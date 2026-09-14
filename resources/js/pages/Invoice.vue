@@ -65,14 +65,6 @@ return '—';
     });
 }
 
-function formatHms(seconds: number): string {
-    const h = Math.floor(seconds / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
-    const s = seconds % 60;
-
-    return [h, m, s].map((n) => n.toString().padStart(2, '0')).join(':');
-}
-
 function printPage() {
     window.print();
 }
@@ -160,13 +152,13 @@ function printPage() {
                             <tr v-for="inv in intervals" :key="inv.id">
                                 <td class="px-3 py-2 font-semibold">{{ inv.pricing_tier }}</td>
                                 <td class="px-3 py-2 text-right font-mono tabular-nums">
-                                    {{ (inv.rate_per_hour_millimes / 1000).toFixed(3) }} /hr
+                                    {{ Math.round(inv.rate_per_hour_millimes / 1000) }} /hr
                                 </td>
                                 <td class="px-3 py-2 text-right font-mono tabular-nums">
                                     {{ inv.billable_minutes }}m
                                 </td>
                                 <td class="px-3 py-2 text-right font-mono font-semibold tabular-nums">
-                                    {{ (inv.subtotal_millimes / 1000).toFixed(3) }}
+                                    {{ Math.round(inv.subtotal_millimes / 1000) }}
                                 </td>
                             </tr>
                         </tbody>
@@ -174,53 +166,20 @@ function printPage() {
                 </div>
             </div>
 
-            <!-- Retail Items -->
-            <div v-if="orderItems.length" class="mb-6">
-                <h2 class="text-xs font-semibold uppercase tracking-wider text-text-muted mb-2 print:text-gray-600">Retail Items</h2>
-                <div class="bg-surface-canvas rounded-lg border border-surface-border-subtle overflow-hidden print:border-gray-300 print:bg-white">
-                    <table class="w-full text-xs">
-                        <thead class="bg-surface-overlay text-text-muted print:bg-gray-100 print:text-gray-700">
-                            <tr>
-                                <th class="text-left px-3 py-2 font-semibold">Item</th>
-                                <th class="text-right px-3 py-2 font-semibold">Qty</th>
-                                <th class="text-right px-3 py-2 font-semibold">Unit</th>
-                                <th class="text-right px-3 py-2 font-semibold">Subtotal</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-surface-border-subtle print:divide-gray-200">
-                            <tr v-for="item in orderItems" :key="item.id">
-                                <td class="px-3 py-2 font-semibold">{{ item.item_name }}</td>
-                                <td class="px-3 py-2 text-right font-mono tabular-nums">{{ item.quantity }}</td>
-                                <td class="px-3 py-2 text-right font-mono tabular-nums">
-                                    {{ (item.unit_price_millimes / 1000).toFixed(3) }}
-                                </td>
-                                <td class="px-3 py-2 text-right font-mono font-semibold tabular-nums">
-                                    {{ (item.subtotal_millimes / 1000).toFixed(3) }}
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- Totals -->
+                    <!-- Totals -->
             <div class="border-t border-surface-border pt-4 print:border-black">
                 <div class="flex flex-col gap-1.5 text-sm ml-auto max-w-xs">
                     <div class="flex justify-between text-text-secondary print:text-gray-700">
                         <span>Time subtotal:</span>
-                        <span class="font-mono tabular-nums">{{ totals.time_amount_lyd.toFixed(3) }}</span>
-                    </div>
-                    <div v-if="totals.retail_amount_millimes > 0" class="flex justify-between text-text-secondary print:text-gray-700">
-                        <span>Retail add-ons:</span>
-                        <span class="font-mono tabular-nums">{{ totals.retail_amount_lyd.toFixed(3) }}</span>
+                        <span class="font-mono tabular-nums">{{ Math.round(totals.time_amount_lyd) }}</span>
                     </div>
                     <div v-if="totals.discount_amount_millimes > 0" class="flex justify-between text-text-secondary print:text-gray-700">
                         <span>Discount:</span>
-                        <span class="font-mono tabular-nums">-{{ totals.discount_amount_lyd.toFixed(3) }}</span>
+                        <span class="font-mono tabular-nums">-{{ Math.round(totals.discount_amount_lyd) }}</span>
                     </div>
                     <div class="flex justify-between items-center pt-2 mt-1 border-t border-surface-border text-base font-bold print:border-black">
                         <span>Total Due</span>
-                        <span class="text-xl font-mono tabular-nums">{{ totals.final_total_lyd.toFixed(3) }}</span>
+                        <span class="text-xl font-mono tabular-nums">{{ Math.round(totals.final_total_lyd) }}</span>
                     </div>
                 </div>
             </div>

@@ -100,18 +100,14 @@ function submitClose() {
                             </span>
                         </div>
 
-                        <div class="grid grid-cols-2 gap-3 pt-1">
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
                             <div class="p-2.5 rounded-lg bg-surface-overlay border border-surface-border-subtle">
                                 <span class="text-text-muted block">Opening Float:</span>
-                                <span class="text-base font-semibold text-text-primary font-mono tabular-nums">{{ activeShift.opening_float_lyd.toFixed(3) }} LYD</span>
+                                <span class="text-base font-semibold text-text-primary font-mono tabular-nums">{{ Math.round(activeShift.opening_float_lyd) }} LYD</span>
                             </div>
                             <div class="p-2.5 rounded-lg bg-surface-overlay border border-surface-border-subtle">
                                 <span class="text-text-muted block">Cash Collected:</span>
-                                <span class="text-base font-semibold text-status-available font-mono tabular-nums">+{{ activeShift.cash_collected_lyd.toFixed(3) }} LYD</span>
-                            </div>
-                            <div class="p-2.5 rounded-lg bg-surface-overlay border border-surface-border-subtle">
-                                <span class="text-text-muted block">Card / Digital:</span>
-                                <span class="text-base font-semibold text-text-primary font-mono tabular-nums">{{ activeShift.card_collected_lyd.toFixed(3) }} LYD</span>
+                                <span class="text-base font-semibold text-status-available font-mono tabular-nums">+{{ Math.round(activeShift.cash_collected_lyd) }} LYD</span>
                             </div>
                             <div class="p-2.5 rounded-lg bg-surface-overlay border border-surface-border-subtle">
                                 <span class="text-text-muted block">Completed Sessions:</span>
@@ -121,7 +117,7 @@ function submitClose() {
 
                         <div class="p-3.5 rounded-xl bg-status-warning/10 border border-status-warning/30 flex justify-between items-center mt-2">
                             <span class="font-semibold text-status-warning text-sm">Expected Cash in Drawer:</span>
-                            <span class="text-xl font-semibold font-mono tabular-nums text-status-warning">{{ activeShift.expected_current_cash_lyd.toFixed(3) }} LYD</span>
+                            <span class="text-xl font-semibold font-mono tabular-nums text-status-warning">{{ Math.round(activeShift.expected_current_cash_lyd) }} LYD</span>
                         </div>
                     </div>
 
@@ -150,10 +146,10 @@ function submitClose() {
                             <input
                                 v-model.number="cashCountedLyd"
                                 type="number"
-                                step="1"
+                                step="5"
                                 min="0"
                                 class="w-full px-3.5 py-3 bg-surface-canvas border border-surface-border-subtle rounded-lg text-text-primary font-mono text-xl font-semibold focus:outline-none focus:border-brand-primary placeholder:text-text-muted"
-                                placeholder="0.000"
+                                placeholder="0"
                             />
                         </div>
 
@@ -165,7 +161,7 @@ function submitClose() {
                                     calculatedDifferenceLyd === 0 ? 'text-text-muted' : (calculatedDifferenceLyd > 0 ? 'text-status-available' : 'text-status-rogue')
                                 ]"
                             >
-                                {{ calculatedDifferenceLyd > 0 ? '+' : '' }}{{ calculatedDifferenceLyd.toFixed(3) }} LYD
+                                {{ calculatedDifferenceLyd > 0 ? '+' : '' }}{{ Math.round(calculatedDifferenceLyd) }} LYD
                                 <span v-if="calculatedDifferenceLyd === 0"> (Balanced)</span>
                                 <span v-else-if="calculatedDifferenceLyd > 0"> (Surplus)</span>
                                 <span v-else> (Deficit)</span>

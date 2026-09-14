@@ -123,8 +123,8 @@ test('multiple pauses correctly accumulated into total_paused_seconds', function
 
     $total = $this->rateEngine->calculateSessionTotal($session);
 
-    // 70 elapsed - 25 paused = 45 billable min @ 6 LYD/hr = 4500 millimes
-    expect($total['time_amount_millimes'])->toBe(4500);
+    // 70 elapsed - 25 paused = 45 billable min @ 6 LYD/hr = 4500 millimes -> 5 LYD ceiling = 5000
+    expect($total['time_amount_millimes'])->toBe(5000);
 });
 
 test('currently-paused session caps duration at paused_at', function () {
@@ -145,8 +145,8 @@ test('currently-paused session caps duration at paused_at', function () {
 
     $total = $this->rateEngine->calculateSessionTotal($session);
 
-    // duration is capped at paused_at = 45 minutes; paused seconds 0 because pause-in-progress
-    expect($total['time_amount_millimes'])->toBe(4500);
+    // duration is capped at paused_at = 45 minutes; paused seconds 0 because pause-in-progress -> 5 LYD ceiling = 5000
+    expect($total['time_amount_millimes'])->toBe(5000);
 });
 
 test('completed session with multiple pauses totals correctly after endSession + settlePayment', function () {
@@ -203,9 +203,9 @@ test('settlePayment allows underpayment when discount covers the gap', function 
 
     $this->sessionManager->endSession($session);
 
-    // Total is 6000 millimes, discount 5000, cash received 1000 -> final = 1000
-    $this->sessionManager->settlePayment($session, 'cash', 1000, 5000);
+    // Total is 6000 millimes (rounds up to 10000), discount 5000, cash received 5000 -> final = 5000
+    $this->sessionManager->settlePayment($session, 'cash', 5000, 5000);
 
-    expect($session->fresh()->final_total_millimes)->toBe(1000)
+    expect($session->fresh()->final_total_millimes)->toBe(5000)
         ->and($session->fresh()->discount_amount_millimes)->toBe(5000);
 });

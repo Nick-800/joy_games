@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { router, Link } from '@inertiajs/vue3';
-import { Gamepad2, User, Wallet, Clock, Activity, Cpu, KeyRound, LogOut, Receipt } from 'lucide-vue-next';
+import { Gamepad2, User, Wallet, Clock, Activity, Cpu, KeyRound, LogOut, Receipt, Settings } from 'lucide-vue-next';
 import { ref, onMounted, onUnmounted } from 'vue';
 
 const props = defineProps<{
@@ -14,6 +14,7 @@ const props = defineProps<{
     activeStationsCount: number;
     totalStationsCount: number;
     simulatorOpen: boolean;
+    tvControlEnabled?: boolean;
     currentUser?: { id: number; name: string; email: string; role: string } | null;
 }>();
 
@@ -85,7 +86,7 @@ onUnmounted(() => {
                     <Wallet class="w-3.5 h-3.5 text-text-muted" />
                     <span class="text-text-muted">Shift Float:</span>
                     <span v-if="activeShift" class="font-semibold text-text-primary tabular-nums">
-                        {{ activeShift.opening_float_lyd.toFixed(3) }}
+                        {{ Math.round(activeShift.opening_float_lyd) }} LYD
                     </span>
                     <span v-else class="text-status-rogue font-semibold">No Open Shift</span>
                 </button>
@@ -112,7 +113,16 @@ onUnmounted(() => {
                     <Receipt class="w-3.5 h-3.5" />
                     <span>Reports</span>
                 </Link>
+                <Link
+                    href="/settings"
+                    class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-surface-elevated hover:bg-surface-border text-text-secondary border border-surface-border-subtle transition cursor-pointer"
+                    title="Control stations and settings"
+                >
+                    <Settings class="w-3.5 h-3.5" />
+                    <span>Settings</span>
+                </Link>
                 <button
+                    v-if="tvControlEnabled"
                     @click="emit('toggleSimulator')"
                     type="button"
                     :class="[

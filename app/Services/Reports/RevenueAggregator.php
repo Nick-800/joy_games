@@ -22,7 +22,7 @@ class RevenueAggregator
     /**
      * @return array{mode:string, from:string, to:string, timezone:string, filters:array<string, mixed>, totals:array<string, int>, buckets:array<int, array<string, mixed>>}
      */
-    public function aggregate(string $mode, CarbonImmutable $from, CarbonImmutable $to, Filters $filters): array
+    public function aggregate(string $mode, CarbonImmutable $from, CarbonImmutable $to, Filters $filters, bool $excludeEmpty = true): array
     {
         if (! in_array($mode, self::modes(), true)) {
             throw new \InvalidArgumentException("Unsupported report mode [{$mode}].");
@@ -60,6 +60,10 @@ class RevenueAggregator
 
         $totals = $this->totalsFromBuckets($buckets);
 
+        $filteredBuckets = $excludeEmpty
+            ? array_filter($buckets, fn (Bucket $b) => $b->finalLyd > 0)
+            : $buckets;
+
         return [
             'mode' => $mode,
             'from' => $localFrom->toIso8601String(),
@@ -72,7 +76,7 @@ class RevenueAggregator
                 'session_types' => $filters->sessionTypes,
             ],
             'totals' => $totals,
-            'buckets' => array_values(array_map(fn (Bucket $b) => $b->toArray(), $buckets)),
+            'buckets' => array_values(array_map(fn (Bucket $b) => $b->toArray(), $filteredBuckets)),
         ];
     }
 
@@ -121,8 +125,8 @@ class RevenueAggregator
     public function bucketHeaders(): array
     {
         return [
-            'Bucket', 'Sessions', 'Time LYD', 'Retail LYD', 'Discount LYD',
-            'Final LYD', 'Cash LYD', 'Card LYD', 'Minutes',
+            'Bucket', 'Sessions', 'Time LYD', 'Discount LYD',
+            'Final LYD', 'Cash LYD', 'Minutes',
         ];
     }
 
@@ -138,11 +142,9 @@ class RevenueAggregator
                 $bucket->label,
                 (string) $bucket->sessions,
                 number_format($bucket->timeLyd / 1000, 3, '.', ''),
-                number_format($bucket->retailLyd / 1000, 3, '.', ''),
                 number_format($bucket->discountLyd / 1000, 3, '.', ''),
                 number_format($bucket->finalLyd / 1000, 3, '.', ''),
                 number_format($bucket->cashLyd / 1000, 3, '.', ''),
-                number_format($bucket->cardLyd / 1000, 3, '.', ''),
                 (string) $bucket->minutes,
             ];
         }

@@ -21,6 +21,7 @@ beforeEach(function () {
         'currency_code' => 'LYD',
         'currency_symbol' => 'د.ل',
         'allow_overtime_default' => true,
+        'tv_control_enabled' => true,
     ]);
 
     $this->tier1 = PricingTier::create([
@@ -124,14 +125,14 @@ test('it ends session, puts TV to standby, and settles payment with cash change'
         ->and($this->station1->fresh()->current_state)->toBe('payment_pending')
         ->and($this->station1->fresh()->tv_physical_state)->toBe('standby');
 
-    // Settle 6.000 LYD bill with 10.000 LYD cash -> 4.000 LYD change
-    $this->sessionManager->settlePayment($session, 'cash', 10000);
+    // Settle 10.000 LYD bill with 15.000 LYD cash -> 5.000 LYD change
+    $this->sessionManager->settlePayment($session, 'cash', 15000);
 
     expect($session->fresh()->status)->toBe('completed')
         ->and($session->fresh()->payment_status)->toBe('paid')
-        ->and($session->fresh()->final_total_millimes)->toBe(6000)
-        ->and($session->fresh()->cash_received_millimes)->toBe(10000)
-        ->and($session->fresh()->cash_change_millimes)->toBe(4000)
+        ->and($session->fresh()->final_total_millimes)->toBe(10000)
+        ->and($session->fresh()->cash_received_millimes)->toBe(15000)
+        ->and($session->fresh()->cash_change_millimes)->toBe(5000)
         ->and($this->station1->fresh()->current_state)->toBe('available');
 });
 

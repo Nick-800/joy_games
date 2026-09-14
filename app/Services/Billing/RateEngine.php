@@ -19,6 +19,7 @@ class RateEngine
         if ($durationSeconds <= 0) {
             return [
                 'duration_seconds' => 0,
+                'billable_seconds' => 0,
                 'billable_minutes' => 0,
                 'subtotal_millimes' => 0,
             ];
@@ -111,27 +112,43 @@ class RateEngine
 
                 $finalTimeAmountMillimes = max($minimumCharge, $finalTimeAmountMillimes);
             }
+
+            $finalTimeAmountMillimes = self::roundUpToMultipleOfFive($finalTimeAmountMillimes);
         }
 
         $retailSubtotalMillimes = (int) $session->orderItems()->sum('subtotal_millimes');
 
         $discountMillimes = $session->discount_amount_millimes ?? 0;
 
-        $finalTotalMillimes = max(0, $finalTimeAmountMillimes + $retailSubtotalMillimes - $discountMillimes);
+        $rawFinal = max(0, $finalTimeAmountMillimes + $retailSubtotalMillimes - $discountMillimes);
+        $finalTotalMillimes = self::roundUpToMultipleOfFive($rawFinal);
 
         return [
             'total_duration_seconds' => $totalDurationSeconds,
             'total_billable_seconds' => $totalBillableSeconds,
             'total_billable_minutes' => $totalMinutes,
             'time_amount_millimes' => $finalTimeAmountMillimes,
-            'time_amount_lyd' => $finalTimeAmountMillimes / 1000,
+            'time_amount_lyd' => (int) ($finalTimeAmountMillimes / 1000),
             'retail_amount_millimes' => $retailSubtotalMillimes,
-            'retail_amount_lyd' => $retailSubtotalMillimes / 1000,
+            'retail_amount_lyd' => (int) round($retailSubtotalMillimes / 1000),
             'discount_amount_millimes' => $discountMillimes,
-            'discount_amount_lyd' => $discountMillimes / 1000,
+            'discount_amount_lyd' => (int) round($discountMillimes / 1000),
             'final_total_millimes' => $finalTotalMillimes,
-            'final_total_lyd' => $finalTotalMillimes / 1000,
+            'final_total_lyd' => (int) ($finalTotalMillimes / 1000),
             'intervals' => $intervalsData,
         ];
+    }
+
+    /**
+     * Always round up to the closest multiple of 5 LYD (5000 millimes), ceiling not floor.
+     * No fractions are permitted.
+     */
+    public static function roundUpToMultipleOfFive(int $millimes): int
+    {
+        if ($millimes <= 0) {
+            return 0;
+        }
+
+        return (int) (ceil($millimes / 5000) * 5000);
     }
 }

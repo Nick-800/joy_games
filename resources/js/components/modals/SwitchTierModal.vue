@@ -20,6 +20,29 @@ const emit = defineEmits<{
     (e: 'close'): void;
 }>();
 
+function getTierRateLyd(tier: {
+    id: number;
+    controller_count_min: number;
+    controller_count_max: number;
+    hourly_rate_lyd: number;
+}): number {
+    if (!props.station) return tier.hourly_rate_lyd;
+
+    if (tier.controller_count_max <= 2 && props.station.hourly_rate_1_2_lyd) {
+        return props.station.hourly_rate_1_2_lyd;
+    }
+    if (tier.controller_count_min >= 3 && props.station.hourly_rate_3_4_lyd) {
+        return props.station.hourly_rate_3_4_lyd;
+    }
+    if (props.station.default_hourly_rate_lyd) {
+        return props.station.default_hourly_rate_lyd;
+    }
+
+    const mult = props.station.is_vip ? 1.50 : 1.00;
+    const raw = tier.hourly_rate_lyd * mult;
+    return Math.ceil(raw / 5) * 5;
+}
+
 function switchTier(tierId: number) {
     if (!props.station?.active_session) return;
 
@@ -89,7 +112,7 @@ function switchTier(tierId: number) {
                         </div>
                         <div class="text-right">
                             <span class="text-sm font-semibold text-text-primary font-mono tabular-nums block">
-                                {{ (tier.hourly_rate_lyd * (station.is_vip ? 1.50 : 1.00)).toFixed(3) }} LYD/hr
+                                {{ getTierRateLyd(tier) }} LYD/hr
                             </span>
                             <span v-if="station.active_session?.current_tier?.id === tier.id" class="text-xs font-semibold text-status-available uppercase">
                                 Currently Active

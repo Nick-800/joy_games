@@ -56,7 +56,7 @@ test('authenticated user can view invoice for a completed session', function () 
         ->assertInertia(fn ($page) => $page
             ->component('Invoice')
             ->where('session.id', $session->id)
-            ->where('totals.final_total_lyd', 3)
+            ->where('totals.final_total_lyd', 5)
         );
 });
 

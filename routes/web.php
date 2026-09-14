@@ -8,6 +8,7 @@ use App\Http\Controllers\PosController;
 use App\Http\Controllers\ReconciliationController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SessionController;
+use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\ShiftController;
 use Illuminate\Support\Facades\Route;
 
@@ -70,5 +71,15 @@ Route::middleware('auth')->group(function () {
         Route::get('/data', [ReportController::class, 'data'])->name('data');
         Route::get('/sessions', [ReportController::class, 'sessions'])->name('sessions');
         Route::get('/export', [ReportController::class, 'export'])->name('export');
+    });
+
+    // Settings (Station Management, TV Control Feature Flag, Pricing)
+    Route::prefix('settings')->name('settings.')->group(function () {
+        Route::get('/', [SettingsController::class, 'index'])->name('index');
+        Route::post('/stations', [SettingsController::class, 'storeStation'])->name('stations.store');
+        Route::put('/stations/{station}', [SettingsController::class, 'updateStation'])->name('stations.update');
+        Route::delete('/stations/{station}', [SettingsController::class, 'destroyStation'])->name('stations.destroy');
+        Route::post('/feature-flags', [SettingsController::class, 'updateFeatureFlags'])->name('feature-flags.update');
+        Route::put('/pricing-tiers/{tier}', [SettingsController::class, 'updatePricingTier'])->name('pricing-tiers.update');
     });
 });

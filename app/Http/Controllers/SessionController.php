@@ -27,6 +27,8 @@ class SessionController extends Controller
             'auto_wake' => ['boolean'],
             'allow_overtime' => ['boolean'],
             'backdate_minutes' => ['nullable', 'integer', 'min:0'],
+            'prepaid_payment_timing' => ['nullable', 'in:before,after'],
+            'cash_received_millimes' => ['nullable', 'integer', 'min:0'],
         ]);
 
         $station = Station::findOrFail($validated['station_id']);
@@ -42,7 +44,9 @@ class SessionController extends Controller
             customerName: $validated['customer_name'] ?? null,
             customerPhone: $validated['customer_phone'] ?? null,
             autoWake: $validated['auto_wake'] ?? true,
-            allowOvertime: $validated['allow_overtime'] ?? true
+            allowOvertime: $validated['allow_overtime'] ?? true,
+            prepaidPaymentTiming: $validated['prepaid_payment_timing'] ?? 'after',
+            cashReceivedMillimes: $validated['cash_received_millimes'] ?? 0
         );
 
         if (! empty($validated['backdate_minutes']) && $validated['backdate_minutes'] > 0) {
@@ -102,7 +106,7 @@ class SessionController extends Controller
     public function settle(Request $request, GameSession $session): RedirectResponse
     {
         $validated = $request->validate([
-            'payment_method' => ['required', 'in:cash,card,split'],
+            'payment_method' => ['required', 'in:cash'],
             'cash_received_millimes' => ['nullable', 'integer', 'min:0'],
             'discount_millimes' => ['nullable', 'integer', 'min:0'],
             'notes' => ['nullable', 'string', 'max:255'],

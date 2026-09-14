@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
 import { useForm } from '@inertiajs/vue3';
-import { X, Receipt, CreditCard, Banknote, CheckCircle2, Calculator } from 'lucide-vue-next';
+import { X, Receipt, Banknote, CheckCircle2 } from 'lucide-vue-next';
+import { ref, computed, watch } from 'vue';
 import type { StationData } from '../StationCard.vue';
 
 const props = defineProps<{
@@ -13,7 +13,6 @@ const emit = defineEmits<{
     (e: 'close'): void;
 }>();
 
-const paymentMethod = ref<'cash' | 'card' | 'split'>('cash');
 const discountLyd = ref<number>(0);
 const cashReceivedLyd = ref<number>(0);
 const notes = ref<string>('');
@@ -21,34 +20,40 @@ const notes = ref<string>('');
 const session = computed(() => props.station?.active_session);
 
 const timeSubtotalLyd = computed(() => session.value?.time_amount_lyd ?? 0);
-const retailSubtotalLyd = computed(() => session.value?.retail_amount_lyd ?? 0);
+const upfrontPaidLyd = computed(() => session.value?.upfront_paid_lyd ?? 0);
 
-const finalTotalLyd = computed(() => {
-    const gross = timeSubtotalLyd.value + retailSubtotalLyd.value;
-    return Math.max(0, gross - (discountLyd.value || 0));
+const grossTotalLyd = computed(() => {
+    return timeSubtotalLyd.value;
+});
+
+const remainingTotalDueLyd = computed(() => {
+    const raw = Math.max(0, grossTotalLyd.value - upfrontPaidLyd.value - (discountLyd.value || 0));
+
+    return raw > 0 ? Math.ceil(raw / 5) * 5 : 0;
 });
 
 const changeDueLyd = computed(() => {
-    if (paymentMethod.value !== 'cash') return 0;
-    return Math.max(0, (cashReceivedLyd.value || 0) - finalTotalLyd.value);
+    return Math.max(0, (cashReceivedLyd.value || 0) - remainingTotalDueLyd.value);
 });
 
-const cashPresets = [10, 20, 30, 40, 50, 100];
+const cashPresets = [5, 10, 20];
 
 // Auto-fill cash received when modal opens or total changes
-watch(() => finalTotalLyd.value, (newTotal) => {
-    if (cashReceivedLyd.value === 0 || cashReceivedLyd.value < newTotal) {
-        // Nearest higher preset or exact
-        const rounded = Math.ceil(newTotal / 10) * 10;
-        cashReceivedLyd.value = Math.max(newTotal, rounded);
+watch(() => remainingTotalDueLyd.value, (newDue) => {
+    if (newDue === 0) {
+        cashReceivedLyd.value = 0;
+    } else if (cashReceivedLyd.value === 0 || cashReceivedLyd.value < newDue) {
+        cashReceivedLyd.value = newDue;
     }
 }, { immediate: true });
 
 function submit() {
-    if (!session.value) return;
+    if (!session.value) {
+return;
+}
 
     const form = useForm({
-        payment_method: paymentMethod.value,
+        payment_method: 'cash',
         cash_received_millimes: Math.round(cashReceivedLyd.value * 1000),
         discount_millimes: Math.round(discountLyd.value * 1000),
         notes: notes.value,
@@ -100,21 +105,8 @@ function submit() {
                             :key="inv.id"
                             class="flex justify-between py-1 font-mono tabular-nums"
                         >
-                            <span class="text-text-muted">Slice {{ idx + 1 }}: {{ inv.pricing_tier }} ({{ inv.billable_minutes }}m @ {{ (inv.rate_per_hour_millimes/1000).toFixed(3) }} LYD)</span>
-                            <span class="font-semibold text-text-primary">{{ (inv.subtotal_millimes / 1000).toFixed(3) }} LYD</span>
-                        </div>
-                    </div>
-
-                    <!-- Retail Items -->
-                    <div v-if="session.order_items?.length" class="pt-2 border-t border-surface-border-subtle">
-                        <span class="font-semibold text-text-secondary font-sans block mb-1.5 uppercase text-xs">Retail Items:</span>
-                        <div
-                            v-for="item in session.order_items"
-                            :key="item.id"
-                            class="flex justify-between py-1 font-mono tabular-nums"
-                        >
-                            <span class="text-text-muted">{{ item.quantity }}x {{ item.item_name }}</span>
-                            <span class="font-semibold text-text-primary">{{ item.subtotal_lyd.toFixed(3) }} LYD</span>
+                            <span class="text-text-muted">Slice {{ idx + 1 }}: {{ inv.pricing_tier }} ({{ inv.billable_minutes }}m @ {{ Math.round(inv.rate_per_hour_millimes/1000) }} LYD)</span>
+                            <span class="font-semibold text-text-primary">{{ Math.round(inv.subtotal_millimes / 1000) }} LYD</span>
                         </div>
                     </div>
 
@@ -122,88 +114,59 @@ function submit() {
                     <div class="pt-3 border-t border-surface-border flex flex-col gap-1.5 font-sans">
                         <div class="flex justify-between text-text-muted">
                             <span>Time Subtotal:</span>
-                            <span class="font-mono text-text-primary font-semibold tabular-nums">{{ timeSubtotalLyd.toFixed(3) }} LYD</span>
+                            <span class="font-mono text-text-primary font-semibold tabular-nums">{{ Math.round(timeSubtotalLyd) }} LYD</span>
                         </div>
-                        <div v-if="retailSubtotalLyd > 0" class="flex justify-between text-text-muted">
-                            <span>Retail Add-ons:</span>
-                            <span class="font-mono text-text-primary font-semibold tabular-nums">{{ retailSubtotalLyd.toFixed(3) }} LYD</span>
+                        <div v-if="upfrontPaidLyd > 0" class="flex justify-between text-status-available font-semibold">
+                            <span>Paid Upfront:</span>
+                            <span class="font-mono tabular-nums">-{{ Math.round(upfrontPaidLyd) }} LYD</span>
                         </div>
                         <div v-if="discountLyd > 0" class="flex justify-between text-text-muted">
                             <span>Discount Applied:</span>
-                            <span class="font-mono text-text-secondary tabular-nums">-{{ discountLyd.toFixed(3) }} LYD</span>
+                            <span class="font-mono text-text-secondary tabular-nums">-{{ Math.round(discountLyd) }} LYD</span>
                         </div>
                         <div class="flex justify-between items-center pt-2 mt-1 border-t border-surface-border text-base font-semibold text-text-primary">
-                            <span class="text-text-muted">Total Due (LYD):</span>
-                            <span class="text-2xl font-mono text-text-primary font-semibold tabular-nums">{{ finalTotalLyd.toFixed(3) }} LYD</span>
+                            <span class="text-text-muted">{{ upfrontPaidLyd > 0 ? 'Remaining Due (LYD):' : 'Total Due (LYD):' }}</span>
+                            <span class="text-2xl font-mono text-text-primary font-semibold tabular-nums">{{ remainingTotalDueLyd }} LYD</span>
                         </div>
                     </div>
                 </div>
 
-                <!-- Payment Method Selector -->
-                <div>
-                    <label class="block text-xs font-semibold uppercase tracking-wider text-text-muted mb-2">
-                        Select Payment Method
-                    </label>
-                    <div class="grid grid-cols-2 gap-3">
-                        <button
-                            type="button"
-                            @click="paymentMethod = 'cash'"
-                            :class="[
-                                'py-3 px-4 rounded-lg border text-sm font-semibold flex items-center justify-center gap-2 transition cursor-pointer',
-                                paymentMethod === 'cash'
-                                    ? 'bg-brand-primary text-text-primary border-transparent'
-                                    : 'bg-surface-elevated hover:bg-surface-border text-text-secondary border border-surface-border-subtle'
-                            ]"
-                        >
-                            <Banknote class="w-4 h-4" /> Cash Drawer
-                        </button>
-                        <button
-                            type="button"
-                            @click="paymentMethod = 'card'"
-                            :class="[
-                                'py-3 px-4 rounded-lg border text-sm font-semibold flex items-center justify-center gap-2 transition cursor-pointer',
-                                paymentMethod === 'card'
-                                    ? 'bg-brand-primary text-text-primary border-transparent'
-                                    : 'bg-surface-elevated hover:bg-surface-border text-text-secondary border border-surface-border-subtle'
-                            ]"
-                        >
-                            <CreditCard class="w-4 h-4" /> POS Card / Digital
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Cash Calculator (if Cash) -->
-                <div v-if="paymentMethod === 'cash'" class="p-4 rounded-xl bg-surface-overlay border border-surface-border-subtle flex flex-col gap-3">
+                <!-- Cash Collection Section (Only Cash, Card Removed) -->
+                <div v-if="remainingTotalDueLyd > 0" class="p-4 rounded-xl bg-surface-overlay border border-surface-border-subtle flex flex-col gap-3">
                     <div class="flex items-center justify-between">
                         <label class="text-xs font-semibold uppercase tracking-wider text-text-muted flex items-center gap-1.5">
-                            <Calculator class="w-3.5 h-3.5" /> Cash Received (LYD)
+                            <Banknote class="w-3.5 h-3.5" /> Cash Received (LYD)
                         </label>
+                        <span class="text-[11px] font-medium text-text-muted bg-surface-canvas px-2 py-0.5 rounded border border-surface-border-subtle">
+                            Cash Only
+                        </span>
                     </div>
 
-                    <!-- Presets -->
-                    <div class="grid grid-cols-6 gap-1.5">
+                    <!-- 3 Options: 5, 10, 20 -->
+                    <div class="grid grid-cols-3 gap-2">
                         <button
                             v-for="preset in cashPresets"
                             :key="preset"
                             type="button"
                             @click="cashReceivedLyd = preset"
                             :class="[
-                                'py-1.5 text-xs font-mono font-semibold rounded-lg border text-center transition cursor-pointer',
+                                'py-2 text-xs font-mono font-semibold rounded-lg border text-center transition cursor-pointer',
                                 cashReceivedLyd === preset
                                     ? 'bg-brand-primary text-text-primary border-transparent'
                                     : 'bg-surface-elevated hover:bg-surface-border text-text-secondary border border-surface-border-subtle'
                             ]"
                         >
-                            {{ preset }}
+                            {{ preset }} LYD
                         </button>
                     </div>
 
+                    <!-- Custom Cash Input & Change Due -->
                     <div class="grid grid-cols-2 gap-3 items-center pt-2 border-t border-surface-border-subtle">
                         <div>
                             <input
                                 v-model.number="cashReceivedLyd"
                                 type="number"
-                                step="0.5"
+                                step="5"
                                 min="0"
                                 class="w-full px-3 py-2 bg-surface-canvas border border-surface-border-subtle rounded-lg text-text-primary font-mono text-sm focus:outline-none focus:border-brand-primary placeholder:text-text-muted"
                                 placeholder="Exact Cash"
@@ -212,22 +175,28 @@ function submit() {
                         <div class="text-right">
                             <span class="text-xs text-text-muted block">Change to Return:</span>
                             <span :class="['text-lg font-mono font-semibold tabular-nums', changeDueLyd >= 0 ? 'text-status-available' : 'text-status-rogue']">
-                                {{ changeDueLyd.toFixed(3) }} LYD
+                                {{ Math.round(changeDueLyd) }} LYD
                             </span>
                         </div>
                     </div>
                 </div>
 
+                <!-- Already Paid Notice (if remaining due is 0) -->
+                <div v-else class="p-4 rounded-xl bg-status-available/10 border border-status-available/30 text-xs text-status-available flex items-center gap-2">
+                    <CheckCircle2 class="w-4 h-4 shrink-0" />
+                    <span>This session was already fully paid upfront ({{ Math.round(upfrontPaidLyd) }} LYD). No additional payment is due.</span>
+                </div>
+
                 <!-- Discount (Optional) -->
-                <div class="flex items-center gap-3">
+                <div v-if="remainingTotalDueLyd > 0 || discountLyd > 0" class="flex items-center gap-3">
                     <label class="text-xs font-medium text-text-muted whitespace-nowrap">Discount (LYD):</label>
                     <input
                         v-model.number="discountLyd"
                         type="number"
-                        step="0.5"
+                        step="5"
                         min="0"
                         class="w-32 px-3 py-1.5 bg-surface-canvas border border-surface-border-subtle rounded-lg text-text-primary font-mono text-xs focus:outline-none focus:border-brand-primary placeholder:text-text-muted"
-                        placeholder="0.000"
+                        placeholder="0"
                     />
                 </div>
             </div>
@@ -247,7 +216,7 @@ function submit() {
                     class="py-3 px-6 rounded-lg bg-brand-primary hover:bg-brand-primary-hover text-text-primary font-semibold text-sm transition flex items-center gap-2 cursor-pointer"
                 >
                     <CheckCircle2 class="w-4 h-4" />
-                    Complete & Clear Station
+                    {{ remainingTotalDueLyd === 0 ? 'Complete & Clear Station' : 'Settle & Clear Station' }}
                 </button>
             </div>
         </div>

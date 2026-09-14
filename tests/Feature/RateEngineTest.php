@@ -86,8 +86,9 @@ test('it computes sliced interval billing across multiple controller tiers', fun
 
     $total = $this->rateEngine->calculateSessionTotal($session);
 
-    expect($total['time_amount_millimes'])->toBe(13000) // 13.000 LYD
-        ->and($total['final_total_lyd'])->toEqual(13.0);
+    // 13.000 LYD rounds UP to closest multiple of 5 LYD = 15.000 LYD
+    expect($total['time_amount_millimes'])->toBe(15000)
+        ->and($total['final_total_lyd'])->toBe(15);
 });
 
 test('it waives time fee if session ended within 3-minute grace period', function () {
@@ -114,7 +115,7 @@ test('it waives time fee if session ended within 3-minute grace period', functio
     expect($total['time_amount_millimes'])->toBe(0);
 });
 
-test('it enforces 15-minute minimum charge for postpaid sessions beyond grace period', function () {
+test('it enforces 15-minute minimum charge for postpaid sessions beyond grace period rounded up to 5 LYD', function () {
     $session = GameSession::create([
         'station_id' => $this->station->id,
         'cashier_id' => $this->cashier->id,
@@ -135,6 +136,32 @@ test('it enforces 15-minute minimum charge for postpaid sessions beyond grace pe
 
     $total = $this->rateEngine->calculateSessionTotal($session);
 
-    // 15 minutes minimum of 6.000 LYD/hr = 1.500 LYD (1500 millimes)
-    expect($total['time_amount_millimes'])->toBe(1500);
+    // 15 minutes minimum of 6.000 LYD/hr = 1.500 LYD raw -> rounded UP to closest 5 LYD = 5.000 LYD
+    expect($total['time_amount_millimes'])->toBe(5000);
+});
+
+test('it rounds calculated bill up to the closest multiple of 5 LYD (ceiling, no fractions)', function () {
+    // Session of 10 minutes at 6.000 LYD/hr = 1.000 LYD -> rounded UP to 5.000 LYD
+    $session = GameSession::create([
+        'station_id' => $this->station->id,
+        'cashier_id' => $this->cashier->id,
+        'session_type' => 'postpaid',
+        'status' => 'completed',
+        'started_at' => now()->subMinutes(10),
+        'ended_at' => now(),
+    ]);
+
+    GameSessionInterval::create([
+        'game_session_id' => $session->id,
+        'pricing_tier_id' => $this->tier1->id,
+        'started_at' => now()->subMinutes(10),
+        'ended_at' => now(),
+        'rate_per_hour_millimes' => 6000,
+        'station_multiplier' => 1.00,
+    ]);
+
+    $total = $this->rateEngine->calculateSessionTotal($session);
+
+    expect($total['time_amount_millimes'])->toBe(5000)
+        ->and($total['final_total_lyd'])->toBe(5);
 });

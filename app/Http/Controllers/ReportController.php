@@ -73,8 +73,8 @@ class ReportController extends Controller
             $out = fopen('php://output', 'w');
 
             fputcsv($out, [
-                'Bucket', 'Sessions', 'Time LYD', 'Retail LYD', 'Discount LYD',
-                'Final LYD', 'Cash LYD', 'Card LYD', 'Minutes',
+                'Bucket', 'Sessions', 'Time LYD', 'Discount LYD',
+                'Final LYD', 'Cash LYD', 'Minutes',
             ]);
 
             foreach ($payload['buckets'] as $row) {
@@ -82,11 +82,9 @@ class ReportController extends Controller
                     $row['label'],
                     (string) $row['sessions'],
                     number_format($row['time_lyd'] / 1000, 3, '.', ''),
-                    number_format($row['retail_lyd'] / 1000, 3, '.', ''),
                     number_format($row['discount_lyd'] / 1000, 3, '.', ''),
                     number_format($row['final_lyd'] / 1000, 3, '.', ''),
                     number_format($row['cash_lyd'] / 1000, 3, '.', ''),
-                    number_format($row['card_lyd'] / 1000, 3, '.', ''),
                     (string) $row['minutes'],
                 ]);
             }
@@ -102,7 +100,8 @@ class ReportController extends Controller
         $mode = (string) $request->input('mode', RevenueAggregator::MODE_DAILY);
         $from = $request->input('from') ? CarbonImmutable::parse($request->input('from')) : CarbonImmutable::now()->subDays(30);
         $to = $request->input('to') ? CarbonImmutable::parse($request->input('to')) : CarbonImmutable::now();
+        $excludeEmpty = ! $request->boolean('include_empty', false);
 
-        return $this->aggregator->aggregate($mode, $from, $to, Filters::fromArray($request->all()));
+        return $this->aggregator->aggregate($mode, $from, $to, Filters::fromArray($request->all()), $excludeEmpty);
     }
 }

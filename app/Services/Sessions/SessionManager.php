@@ -33,7 +33,9 @@ class SessionManager
         ?string $customerName = null,
         ?string $customerPhone = null,
         bool $autoWake = true,
-        bool $allowOvertime = true
+        bool $allowOvertime = true,
+        ?string $prepaidPaymentTiming = 'after',
+        int $cashReceivedMillimes = 0
     ): GameSession {
         return DB::transaction(function () use (
             $station,
@@ -44,13 +46,40 @@ class SessionManager
             $customerName,
             $customerPhone,
             $autoWake,
-            $allowOvertime
+            $allowOvertime,
+            $prepaidPaymentTiming,
+            $cashReceivedMillimes
         ) {
             $rule = PricingRule::current();
             $shift = Shift::active();
 
             $now = now();
             $state = $sessionType === 'prepaid' ? 'active_prepaid' : 'active_postpaid';
+
+            if ($tier->controller_count_max <= 2 && $station->hourly_rate_1_2_millimes !== null) {
+                $ratePerHour = $station->hourly_rate_1_2_millimes;
+                $stationMultiplier = 1.00;
+            } elseif ($tier->controller_count_min >= 3 && $station->hourly_rate_3_4_millimes !== null) {
+                $ratePerHour = $station->hourly_rate_3_4_millimes;
+                $stationMultiplier = 1.00;
+            } elseif ($station->default_hourly_rate_millimes) {
+                $ratePerHour = $station->default_hourly_rate_millimes;
+                $stationMultiplier = 1.00;
+            } else {
+                $ratePerHour = $tier->hourly_rate_millimes;
+                $stationMultiplier = $station->isVip() ? (float) $rule->vip_multiplier : 1.00;
+            }
+
+            $isPrepaidBefore = ($sessionType === 'prepaid' && $prepaidPaymentTiming === 'before');
+            $upfrontCostMillimes = 0;
+            $cashChangeMillimes = 0;
+
+            if ($isPrepaidBefore && $allocatedMinutes) {
+                $rawCost = ($allocatedMinutes / 60) * $ratePerHour * $stationMultiplier;
+                $upfrontCostMillimes = RateEngine::roundUpToMultipleOfFive((int) ceil($rawCost));
+                $effectiveCashReceived = max($upfrontCostMillimes, $cashReceivedMillimes);
+                $cashChangeMillimes = max(0, $effectiveCashReceived - $upfrontCostMillimes);
+            }
 
             $session = GameSession::create([
                 'station_id' => $station->id,
@@ -59,19 +88,25 @@ class SessionManager
                 'customer_name' => $customerName,
                 'customer_phone' => $customerPhone,
                 'session_type' => $sessionType,
+                'prepaid_payment_timing' => $sessionType === 'prepaid' ? $prepaidPaymentTiming : null,
                 'status' => 'active',
                 'allocated_minutes' => $sessionType === 'prepaid' ? $allocatedMinutes : null,
                 'allow_overtime' => $allowOvertime,
                 'started_at' => $now,
+                'payment_status' => $isPrepaidBefore ? 'paid' : 'unpaid',
+                'payment_method' => $isPrepaidBefore ? 'cash' : null,
+                'upfront_paid_millimes' => $upfrontCostMillimes,
+                'time_amount_millimes' => $upfrontCostMillimes,
+                'final_total_millimes' => $upfrontCostMillimes,
+                'cash_received_millimes' => $isPrepaidBefore ? max($upfrontCostMillimes, $cashReceivedMillimes) : null,
+                'cash_change_millimes' => $isPrepaidBefore ? $cashChangeMillimes : null,
             ]);
-
-            $stationMultiplier = $station->isVip() ? (float) $rule->vip_multiplier : 1.00;
 
             GameSessionInterval::create([
                 'game_session_id' => $session->id,
                 'pricing_tier_id' => $tier->id,
                 'started_at' => $now,
-                'rate_per_hour_millimes' => $tier->hourly_rate_millimes,
+                'rate_per_hour_millimes' => $ratePerHour,
                 'station_multiplier' => $stationMultiplier,
             ]);
 
@@ -81,7 +116,7 @@ class SessionManager
                 'first_detected_on_at' => null,
             ]);
 
-            if ($autoWake) {
+            if ($autoWake && ($rule->tv_control_enabled ?? false)) {
                 TvDriverFactory::make($station)->turnOn($station);
             }
 
@@ -90,7 +125,7 @@ class SessionManager
                 'game_session_id' => $session->id,
                 'user_id' => $cashier->id,
                 'event_type' => 'tv_wake_sent',
-                'physical_state' => $station->tv_physical_state,
+                'physical_state' => $station->tv_physical_state ?? 'standby',
                 'expected_state' => $state,
                 'details' => [
                     'session_type' => $sessionType,
@@ -135,13 +170,26 @@ class SessionManager
             }
 
             $rule = PricingRule::current();
-            $stationMultiplier = $session->station?->isVip() ? (float) $rule->vip_multiplier : 1.00;
+
+            if ($session->station && $newTier->controller_count_max <= 2 && $session->station->hourly_rate_1_2_millimes !== null) {
+                $ratePerHour = $session->station->hourly_rate_1_2_millimes;
+                $stationMultiplier = 1.00;
+            } elseif ($session->station && $newTier->controller_count_min >= 3 && $session->station->hourly_rate_3_4_millimes !== null) {
+                $ratePerHour = $session->station->hourly_rate_3_4_millimes;
+                $stationMultiplier = 1.00;
+            } elseif ($session->station && $session->station->default_hourly_rate_millimes) {
+                $ratePerHour = $session->station->default_hourly_rate_millimes;
+                $stationMultiplier = 1.00;
+            } else {
+                $ratePerHour = $newTier->hourly_rate_millimes;
+                $stationMultiplier = $session->station?->isVip() ? (float) $rule->vip_multiplier : 1.00;
+            }
 
             $newInterval = GameSessionInterval::create([
                 'game_session_id' => $session->id,
                 'pricing_tier_id' => $newTier->id,
                 'started_at' => $now,
-                'rate_per_hour_millimes' => $newTier->hourly_rate_millimes,
+                'rate_per_hour_millimes' => $ratePerHour,
                 'station_multiplier' => $stationMultiplier,
             ]);
 
@@ -150,7 +198,7 @@ class SessionManager
                 'game_session_id' => $session->id,
                 'user_id' => auth()->id() ?? $session->cashier_id,
                 'event_type' => 'tier_switched',
-                'physical_state' => $session->station->tv_physical_state,
+                'physical_state' => $session->station->tv_physical_state ?? 'standby',
                 'expected_state' => $session->station->current_state,
                 'details' => [
                     'new_tier_id' => $newTier->id,
@@ -192,14 +240,16 @@ class SessionManager
             ]);
 
             // Turn off TV screen while paused
-            TvDriverFactory::make($session->station)->turnOff($session->station);
+            if (PricingRule::current()?->tv_control_enabled) {
+                TvDriverFactory::make($session->station)->turnOff($session->station);
+            }
 
             StationAudit::create([
                 'station_id' => $session->station_id,
                 'game_session_id' => $session->id,
                 'user_id' => auth()->id() ?? $session->cashier_id,
                 'event_type' => 'manual_tv_off',
-                'physical_state' => $session->station->tv_physical_state,
+                'physical_state' => $session->station->tv_physical_state ?? 'standby',
                 'expected_state' => 'paused',
                 'details' => ['reason' => $reason],
             ]);
@@ -231,7 +281,9 @@ class SessionManager
             ]);
 
             // Turn TV screen back on via WoL
-            TvDriverFactory::make($session->station)->turnOn($session->station);
+            if (PricingRule::current()?->tv_control_enabled) {
+                TvDriverFactory::make($session->station)->turnOn($session->station);
+            }
 
             return $session;
         });
@@ -285,14 +337,16 @@ class SessionManager
             ]);
 
             // Turn off TV screen
-            TvDriverFactory::make($session->station)->turnOff($session->station);
+            if (PricingRule::current()?->tv_control_enabled) {
+                TvDriverFactory::make($session->station)->turnOff($session->station);
+            }
 
             StationAudit::create([
                 'station_id' => $session->station_id,
                 'game_session_id' => $session->id,
                 'user_id' => auth()->id() ?? $session->cashier_id,
                 'event_type' => 'manual_tv_off',
-                'physical_state' => $session->station->tv_physical_state,
+                'physical_state' => $session->station->tv_physical_state ?? 'standby',
                 'expected_state' => 'payment_pending',
                 'details' => $totals,
             ]);
@@ -321,14 +375,20 @@ class SessionManager
             $now = now();
             $totals = $this->rateEngine->calculateSessionTotal($session, $now);
 
-            $finalTotal = max(0, $totals['time_amount_millimes'] + $totals['retail_amount_millimes'] - $discountMillimes);
-            $change = $paymentMethod === 'cash' ? max(0, $cashReceivedMillimes - $finalTotal) : 0;
+            $upfrontPaid = (int) ($session->upfront_paid_millimes ?? 0);
+            $rawTotal = max(0, $totals['time_amount_millimes'] + $totals['retail_amount_millimes'] - $discountMillimes);
+            $finalTotal = max($rawTotal, $upfrontPaid);
+            $remainingDue = max(0, $finalTotal - $upfrontPaid);
 
-            if (in_array($paymentMethod, ['cash', 'split'], true) && $cashReceivedMillimes < $finalTotal && $discountMillimes <= 0) {
+            $change = $paymentMethod === 'cash' ? max(0, $cashReceivedMillimes - $remainingDue) : 0;
+
+            if (in_array($paymentMethod, ['cash', 'split'], true) && $remainingDue > 0 && $cashReceivedMillimes < $remainingDue && $discountMillimes <= 0) {
                 throw new \InvalidArgumentException(
-                    "Cash received ({$cashReceivedMillimes} millimes) is below final total ({$finalTotal} millimes)."
+                    "Cash received ({$cashReceivedMillimes} millimes) is below remaining total ({$remainingDue} millimes)."
                 );
             }
+
+            $totalCashReceived = ($session->cash_received_millimes ?? 0) + ($paymentMethod === 'cash' ? $cashReceivedMillimes : 0);
 
             $session->update([
                 'status' => 'completed',
@@ -336,7 +396,7 @@ class SessionManager
                 'payment_method' => $paymentMethod,
                 'discount_amount_millimes' => $discountMillimes,
                 'final_total_millimes' => $finalTotal,
-                'cash_received_millimes' => $paymentMethod === 'cash' ? $cashReceivedMillimes : null,
+                'cash_received_millimes' => $paymentMethod === 'cash' ? $totalCashReceived : null,
                 'cash_change_millimes' => $change,
                 'notes' => $notes ?? $session->notes,
                 'ended_at' => $session->ended_at ?? $now,
@@ -379,7 +439,7 @@ class SessionManager
                 'game_session_id' => $session->id,
                 'user_id' => auth()->id() ?? $session->cashier_id,
                 'event_type' => 'station_transfer',
-                'physical_state' => $destinationStation->tv_physical_state,
+                'physical_state' => $destinationStation->tv_physical_state ?? 'standby',
                 'expected_state' => $destinationStation->current_state,
                 'details' => [
                     'from_station_id' => $sourceStation->id,

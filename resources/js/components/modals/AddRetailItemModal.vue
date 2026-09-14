@@ -111,7 +111,7 @@ function removeItem(orderItemId: number) {
                             </div>
                             <div class="flex items-center justify-between pt-2 border-t border-surface-border-subtle">
                                 <span class="text-sm font-semibold text-text-primary font-mono tabular-nums">
-                                    {{ prod.price_lyd.toFixed(3) }} LYD
+                                    {{ Math.round(prod.price_lyd) }} LYD
                                 </span>
                                 <button
                                     @click="addItem(prod, 1)"
@@ -131,7 +131,7 @@ function removeItem(orderItemId: number) {
                     <h4 class="text-xs font-semibold uppercase tracking-wider text-text-muted mb-2 flex items-center justify-between">
                         <span>Items on Tab:</span>
                         <span class="text-text-secondary font-mono tabular-nums">
-                            Subtotal: {{ station.active_session.retail_amount_lyd.toFixed(3) }} LYD
+                            Subtotal: {{ Math.round(station.active_session.retail_amount_lyd) }} LYD
                         </span>
                     </h4>
                     <div class="bg-surface-overlay rounded-xl border border-surface-border-subtle divide-y divide-surface-border-subtle overflow-hidden">
@@ -146,7 +146,7 @@ function removeItem(orderItemId: number) {
                             </div>
                             <div class="flex items-center gap-3">
                                 <span class="font-mono text-text-primary font-semibold tabular-nums">
-                                    {{ item.subtotal_lyd.toFixed(3) }} LYD
+                                    {{ Math.round(item.subtotal_lyd) }} LYD
                                 </span>
                                 <button
                                     @click="removeItem(item.id)"

@@ -22,6 +22,7 @@ beforeEach(function () {
         'currency_code' => 'LYD',
         'currency_symbol' => 'د.ل',
         'allow_overtime_default' => true,
+        'tv_control_enabled' => true,
     ]);
 
     $this->tier = PricingTier::create([

@@ -2,7 +2,6 @@
 import { usePoll, router } from '@inertiajs/vue3';
 import { TriangleAlert } from 'lucide-vue-next';
 import { ref, computed } from 'vue';
-import AddRetailItemModal from '../components/modals/AddRetailItemModal.vue';
 import CheckoutInvoiceModal from '../components/modals/CheckoutInvoiceModal.vue';
 import PinSwitchModal from '../components/modals/PinSwitchModal.vue';
 import ShiftModal from '../components/modals/ShiftModal.vue';
@@ -11,7 +10,8 @@ import SwitchTierModal from '../components/modals/SwitchTierModal.vue';
 import TransferModal from '../components/modals/TransferModal.vue';
 import ShiftHeaderBar from '../components/ShiftHeaderBar.vue';
 import HardwareSimulatorDrawer from '../components/simulator/HardwareSimulatorDrawer.vue';
-import StationCard, { type StationData } from '../components/StationCard.vue';
+import StationCard from '../components/StationCard.vue';
+import type {StationData} from '../components/StationCard.vue';
 
 interface PricingTierItem {
     id: number;
@@ -41,6 +41,7 @@ const props = defineProps<{
         vip_multiplier: number;
         currency_code: string;
         currency_symbol: string;
+        tv_control_enabled?: boolean;
     };
     products: ProductItem[];
     activeShift: any;
@@ -58,12 +59,15 @@ const filteredStations = computed(() => {
     if (activeFilter.value === 'active') {
         return props.stations.filter(s => ['active_prepaid', 'active_postpaid', 'paused', 'payment_pending'].includes(s.current_state));
     }
+
     if (activeFilter.value === 'available') {
         return props.stations.filter(s => s.current_state === 'available' && !s.is_rogue);
     }
+
     if (activeFilter.value === 'rogue') {
         return props.stations.filter(s => s.is_rogue);
     }
+
     return props.stations;
 });
 
@@ -79,7 +83,6 @@ const rogueCount = computed(() => {
 const selectedStation = ref<StationData | null>(null);
 const showStartModal = ref(false);
 const initialBackdateMinutes = ref(0);
-const showRetailModal = ref(false);
 const showTierModal = ref(false);
 const showCheckoutModal = ref(false);
 const showShiftModal = ref(false);
@@ -99,11 +102,6 @@ function onClaimRogue(station: StationData) {
     showStartModal.value = true;
 }
 
-function onAddRetailItem(station: StationData) {
-    selectedStation.value = station;
-    showRetailModal.value = true;
-}
-
 function onSwitchTier(station: StationData) {
     selectedStation.value = station;
     showTierModal.value = true;
@@ -120,22 +118,34 @@ function onTransferStation(station: StationData) {
 }
 
 function onExtendTime(station: StationData, minutes: number) {
-    if (!station.active_session) return;
+    if (!station.active_session) {
+return;
+}
+
     router.post(`/sessions/${station.active_session.id}/extend`, { minutes }, { preserveScroll: true });
 }
 
 function onPauseSession(station: StationData) {
-    if (!station.active_session) return;
+    if (!station.active_session) {
+return;
+}
+
     router.post(`/sessions/${station.active_session.id}/pause`, {}, { preserveScroll: true });
 }
 
 function onResumeSession(station: StationData) {
-    if (!station.active_session) return;
+    if (!station.active_session) {
+return;
+}
+
     router.post(`/sessions/${station.active_session.id}/resume`, {}, { preserveScroll: true });
 }
 
 function onEndSession(station: StationData) {
-    if (!station.active_session) return;
+    if (!station.active_session) {
+return;
+}
+
     router.post(`/sessions/${station.active_session.id}/end`, {}, { preserveScroll: true });
 }
 
@@ -152,6 +162,7 @@ function onForceSleep(station: StationData) {
             :active-stations-count="activeStationsCount"
             :total-stations-count="stations.length"
             :simulator-open="simulatorOpen"
+            :tv-control-enabled="pricingRule.tv_control_enabled"
             @toggle-simulator="simulatorOpen = !simulatorOpen"
             @open-shift-modal="showShiftModal = true"
             @open-pin-modal="showPinModal = true"
@@ -199,7 +210,7 @@ function onForceSleep(station: StationData) {
                         Available Ready ({{ stations.length - activeStationsCount }})
                     </button>
                     <button
-                        v-if="rogueCount > 0"
+                        v-if="pricingRule.tv_control_enabled && rogueCount > 0"
                         @click="activeFilter = 'rogue'"
                         type="button"
                         :class="[
@@ -213,10 +224,6 @@ function onForceSleep(station: StationData) {
                         Rogue ({{ rogueCount }})
                     </button>
                 </div>
-
-                <div class="text-xs text-text-muted font-medium">
-                    Currency: <span class="text-text-primary font-semibold font-mono">Libyan Dinar (LYD / د.ل)</span>
-                </div>
             </div>
 
             <!-- Station Cards Responsive Grid -->
@@ -225,8 +232,8 @@ function onForceSleep(station: StationData) {
                     v-for="station in filteredStations"
                     :key="station.id"
                     :station="station"
+                    :tv-control-enabled="pricingRule.tv_control_enabled"
                     @start-session="onStartSession"
-                    @add-retail-item="onAddRetailItem"
                     @switch-tier="onSwitchTier"
                     @extend-time="onExtendTime"
                     @pause-session="onPauseSession"
@@ -246,14 +253,8 @@ function onForceSleep(station: StationData) {
             :station="selectedStation"
             :pricing-tiers="pricingTiers"
             :initial-backdate-minutes="initialBackdateMinutes"
+            :tv-control-enabled="pricingRule.tv_control_enabled"
             @close="showStartModal = false"
-        />
-
-        <AddRetailItemModal
-            :show="showRetailModal"
-            :station="selectedStation"
-            :products="products"
-            @close="showRetailModal = false"
         />
 
         <SwitchTierModal
@@ -290,6 +291,7 @@ function onForceSleep(station: StationData) {
 
         <!-- Hardware Simulator Drawer -->
         <HardwareSimulatorDrawer
+            v-if="pricingRule.tv_control_enabled"
             :show="simulatorOpen"
             :stations="stations"
             @close="simulatorOpen = false"

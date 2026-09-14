@@ -38,10 +38,22 @@ class TvReconciliationService
      */
     public function reconcileStation(Station $station): array
     {
+        $rule = PricingRule::current();
+        if ($rule && ! $rule->tv_control_enabled) {
+            return [
+                'station_id' => $station->id,
+                'station_name' => $station->name,
+                'physical_state' => $station->tv_physical_state,
+                'current_state' => $station->current_state,
+                'is_rogue' => false,
+                'consecutive_on_pings' => $station->consecutive_on_pings,
+                'action_taken' => 'tv_control_disabled',
+            ];
+        }
+
         $driver = TvDriverFactory::make($station);
         $status = $driver->pollStatus($station);
         $previousPhysicalState = $station->tv_physical_state;
-        $rule = PricingRule::current();
         $autoSleepCutoffSeconds = $rule?->rogue_auto_sleep_seconds ?? 120; // 2 minutes
 
         $isRogue = false;

@@ -387,9 +387,43 @@ test('timezone shift moves a session into the correct local day', function () {
 
     // Session ended at 22:30 UTC, which is 00:30 local on Sep 11 — should land on Sep 11 bucket
     $sep11 = collect($report['buckets'])->firstWhere('key', '2026-09-11');
+    $sep10 = collect($report['buckets'])->firstWhere('key', '2026-09-10');
+
     expect($sep11)->not->toBeNull()
         ->and($sep11['final_lyd'])->toBe(6000)
-        ->and($report['buckets'][0]['final_lyd'])->toBe(0); // Sep 10 has nothing
+        ->and($sep10)->toBeNull(); // Sep 10 has no revenue, so it is omitted from buckets
+});
+
+test('it excludes days with no revenue by default but can include them when requested', function () {
+    makeCompletedSession(
+        stationId: $this->station1->id,
+        cashierId: $this->cashier->id,
+        tierId: $this->tier->id,
+        finalLyd: 6000,
+        endedAt: '2026-09-10 12:00:00',
+    );
+
+    // Range is Sep 10 to Sep 12 (3 days). Only Sep 10 has revenue.
+    $reportFiltered = $this->aggregator->aggregate(
+        RevenueAggregator::MODE_DAILY,
+        CarbonImmutable::parse('2026-09-10', 'Africa/Tripoli')->startOfDay(),
+        CarbonImmutable::parse('2026-09-12', 'Africa/Tripoli')->endOfDay(),
+        Filters::fromArray([]),
+        excludeEmpty: true,
+    );
+
+    expect(count($reportFiltered['buckets']))->toBe(1)
+        ->and($reportFiltered['buckets'][0]['key'])->toBe('2026-09-10');
+
+    $reportAll = $this->aggregator->aggregate(
+        RevenueAggregator::MODE_DAILY,
+        CarbonImmutable::parse('2026-09-10', 'Africa/Tripoli')->startOfDay(),
+        CarbonImmutable::parse('2026-09-12', 'Africa/Tripoli')->endOfDay(),
+        Filters::fromArray([]),
+        excludeEmpty: false,
+    );
+
+    expect(count($reportAll['buckets']))->toBe(3);
 });
 
 test('station breakdown contains per-station revenue', function () {

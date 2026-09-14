@@ -1,11 +1,10 @@
 <script setup lang="ts">
-import { computed, ref, onMounted, onUnmounted } from 'vue';
 import { 
-    Tv, Clock, Zap, TriangleAlert, Play, Plus, 
+    Tv, Clock, Zap, TriangleAlert, Play, 
     Pause, ShieldAlert, ArrowRightLeft, 
-    CheckCircle2, DollarSign, Users, Moon,
-    Sparkles, Coffee, Power
+    CheckCircle2, DollarSign, Users, Moon
 } from 'lucide-vue-next';
+import { computed, ref, onMounted, onUnmounted } from 'vue';
 
 interface PricingTierInfo {
     id: number;
@@ -37,6 +36,9 @@ interface IntervalInfo {
 interface ActiveSessionInfo {
     id: number;
     session_type: 'prepaid' | 'postpaid';
+    payment_status?: 'paid' | 'unpaid';
+    prepaid_payment_timing?: 'before' | 'after' | null;
+    upfront_paid_lyd?: number;
     status: string;
     customer_name?: string | null;
     allocated_minutes?: number | null;
@@ -58,6 +60,10 @@ export interface StationData {
     station_number: number;
     type: 'standard' | 'vip';
     is_vip: boolean;
+    default_hourly_rate_lyd?: number | null;
+    hourly_rate_1_2_lyd?: number | null;
+    hourly_rate_3_4_lyd?: number | null;
+    available_games?: string[];
     tv_ip_address?: string | null;
     tv_mac_address?: string | null;
     tv_os_type: string;
@@ -70,13 +76,15 @@ export interface StationData {
     active_session?: ActiveSessionInfo | null;
 }
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
     station: StationData;
-}>();
+    tvControlEnabled?: boolean;
+}>(), {
+    tvControlEnabled: false,
+});
 
 const emit = defineEmits<{
     (e: 'start-session', station: StationData): void;
-    (e: 'add-retail-item', station: StationData): void;
     (e: 'switch-tier', station: StationData): void;
     (e: 'extend-time', station: StationData, minutes: number): void;
     (e: 'pause-session', station: StationData): void;
@@ -99,18 +107,24 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
-    if (timerInterval) clearInterval(timerInterval);
+    if (timerInterval) {
+clearInterval(timerInterval);
+}
 });
 
 // Computed time elapsed / remaining
 const elapsedSeconds = computed(() => {
-    if (!props.station.active_session?.started_at) return 0;
+    if (!props.station.active_session?.started_at) {
+return 0;
+}
+
     const startMs = new Date(props.station.active_session.started_at).getTime();
     const pausedSeconds = props.station.active_session.total_paused_seconds || 0;
     
     // If currently paused, calculate up to paused_at
     if (props.station.active_session.paused_at) {
         const pauseMs = new Date(props.station.active_session.paused_at).getTime();
+
         return Math.max(0, Math.floor((pauseMs - startMs) / 1000) - pausedSeconds);
     }
 
@@ -118,8 +132,12 @@ const elapsedSeconds = computed(() => {
 });
 
 const remainingSeconds = computed(() => {
-    if (props.station.active_session?.session_type !== 'prepaid') return 0;
+    if (props.station.active_session?.session_type !== 'prepaid') {
+return 0;
+}
+
     const allocated = (props.station.active_session.allocated_minutes || 0) * 60;
+
     return Math.max(0, allocated - elapsedSeconds.value);
 });
 
@@ -133,6 +151,7 @@ const isExpiringSoon = computed(() => {
 const timerDisplay = computed(() => {
     if (props.station.is_rogue) {
         const rogueSecs = props.station.rogue_duration_seconds || 0;
+
         return formatHms(rogueSecs);
     }
 
@@ -151,6 +170,7 @@ function formatHms(seconds: number): string {
     const h = Math.floor(seconds / 3600);
     const m = Math.floor((seconds % 3600) / 60);
     const s = seconds % 60;
+
     return [
         h.toString().padStart(2, '0'),
         m.toString().padStart(2, '0'),
@@ -171,6 +191,7 @@ const cardTheme = computed(() => {
             if (isExpiringSoon.value) {
                 return 'border-status-warning/70 bg-surface-card';
             }
+
             return 'border-status-prepaid/50 bg-surface-card';
         case 'active_postpaid':
             return 'border-status-postpaid/50 bg-surface-card';
@@ -184,21 +205,21 @@ const cardTheme = computed(() => {
 });
 
 const statusBadge = computed(() => {
-    if (props.station.is_rogue) {
+    if (props.station.is_rogue && props.tvControlEnabled) {
         return { text: 'UNAUTHORIZED TV ON', bg: 'bg-status-rogue/15 text-status-rogue border-status-rogue/40' };
     }
 
     switch (props.station.current_state) {
         case 'available':
-            return { text: 'TV OFF (Ready)', bg: 'bg-status-available/10 text-status-available border-status-available/30' };
+            return { text: props.tvControlEnabled ? 'TV OFF (Ready)' : 'Available Ready', bg: 'bg-status-available/10 text-status-available border-status-available/30' };
         case 'active_prepaid':
             return { text: isExpiringSoon.value ? 'Expiring Soon' : 'Prepaid In-Play', bg: isExpiringSoon.value ? 'bg-status-warning/15 text-status-warning border-status-warning/40' : 'bg-status-prepaid/15 text-status-prepaid border-status-prepaid/30' };
         case 'active_postpaid':
             return { text: 'Open Postpaid Tab', bg: 'bg-status-postpaid/15 text-status-postpaid border-status-postpaid/30' };
         case 'paused':
-            return { text: 'TV Suspended (Paused)', bg: 'bg-status-paused/15 text-status-paused border-status-paused/30' };
+            return { text: props.tvControlEnabled ? 'TV Suspended (Paused)' : 'Paused', bg: 'bg-status-paused/15 text-status-paused border-status-paused/30' };
         case 'payment_pending':
-            return { text: 'TV Standby (Bill Due)', bg: 'bg-status-warning/15 text-status-warning border-status-warning/40' };
+            return { text: props.tvControlEnabled ? 'TV Standby (Bill Due)' : 'Payment Due', bg: 'bg-status-warning/15 text-status-warning border-status-warning/40' };
         default:
             return { text: 'Standby', bg: 'bg-surface-overlay text-text-muted border-surface-border-subtle' };
     }
@@ -223,7 +244,7 @@ const statusBadge = computed(() => {
                 </div>
 
                 <!-- TV Physical State Indicator -->
-                <div class="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-surface-overlay border border-surface-border-subtle text-xs">
+                <div v-if="tvControlEnabled" class="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-surface-overlay border border-surface-border-subtle text-xs">
                     <Tv class="w-3 h-3 text-text-muted" />
                     <span
                         :class="[
@@ -242,22 +263,54 @@ const statusBadge = computed(() => {
 
             <!-- Status Pill Badge -->
             <div class="flex items-center justify-between">
-                <span
-                    :class="[
-                        'px-2.5 py-1 rounded-full text-xs font-semibold uppercase tracking-wide border flex items-center gap-1.5',
-                        statusBadge.bg
-                    ]"
-                >
-                    <TriangleAlert v-if="station.is_rogue" class="w-3.5 h-3.5" />
-                    <CheckCircle2 v-else-if="station.current_state === 'available'" class="w-3 h-3" />
-                    <Clock v-else-if="station.current_state === 'active_prepaid'" class="w-3 h-3" />
-                    <Zap v-else-if="station.current_state === 'active_postpaid'" class="w-3 h-3" />
-                    <Pause v-else-if="station.current_state === 'paused'" class="w-3 h-3" />
-                    {{ statusBadge.text }}
-                </span>
+                <div class="flex items-center gap-1.5 flex-wrap">
+                    <span
+                        :class="[
+                            'px-2.5 py-1 rounded-full text-xs font-semibold uppercase tracking-wide border flex items-center gap-1.5',
+                            statusBadge.bg
+                        ]"
+                    >
+                        <TriangleAlert v-if="station.is_rogue && tvControlEnabled" class="w-3.5 h-3.5" />
+                        <CheckCircle2 v-else-if="station.current_state === 'available'" class="w-3 h-3" />
+                        <Clock v-else-if="station.current_state === 'active_prepaid'" class="w-3 h-3" />
+                        <Zap v-else-if="station.current_state === 'active_postpaid'" class="w-3 h-3" />
+                        <Pause v-else-if="station.current_state === 'paused'" class="w-3 h-3" />
+                        {{ statusBadge.text }}
+                    </span>
+
+                    <!-- Prepaid Paid / Unpaid Tag (ONLY for Prepaid) -->
+                    <span
+                        v-if="station.active_session && station.active_session.session_type === 'prepaid'"
+                        :class="[
+                            'px-2 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider border flex items-center gap-1',
+                            station.active_session.payment_status === 'paid'
+                                ? 'bg-status-available/15 text-status-available border-status-available/30'
+                                : 'bg-status-warning/15 text-status-warning border-status-warning/40'
+                        ]"
+                    >
+                        <span :class="['w-1.5 h-1.5 rounded-full', station.active_session.payment_status === 'paid' ? 'bg-status-available' : 'bg-status-warning']"></span>
+                        {{ station.active_session.payment_status === 'paid' ? 'Paid' : 'Unpaid' }}
+                    </span>
+                </div>
 
                 <span v-if="station.active_session?.customer_name" class="text-xs text-text-muted truncate max-w-[120px]">
                     {{ station.active_session.customer_name }}
+                </span>
+            </div>
+
+            <!-- Rates & Available Games info -->
+            <div class="flex items-center justify-between text-xs text-text-muted gap-2 pt-1 border-t border-surface-border-subtle/50">
+                <div class="flex items-center gap-1.5 font-mono text-text-secondary font-semibold text-[11px]">
+                    <span v-if="station.hourly_rate_1_2_lyd || station.default_hourly_rate_lyd">
+                        1-2P: {{ station.hourly_rate_1_2_lyd ?? station.default_hourly_rate_lyd }} LYD
+                    </span>
+                    <span v-if="station.hourly_rate_3_4_lyd" class="text-text-muted/60">/</span>
+                    <span v-if="station.hourly_rate_3_4_lyd">
+                        3-4P: {{ station.hourly_rate_3_4_lyd }} LYD
+                    </span>
+                </div>
+                <span v-if="station.available_games && station.available_games.length > 0" class="truncate text-[11px] text-text-muted">
+                    {{ station.available_games.slice(0, 2).join(', ') }}{{ station.available_games.length > 2 ? ` +${station.available_games.length - 2}` : '' }}
                 </span>
             </div>
         </div>
@@ -291,7 +344,7 @@ const statusBadge = computed(() => {
                         {{ station.active_session.current_tier?.name ?? 'Standard Tier' }}
                     </span>
                     <span class="text-text-muted font-mono">
-                        {{ station.active_session.current_tier?.rate_per_hour_lyd.toFixed(3) }} LYD/hr
+                        {{ Math.round(station.active_session.current_tier?.rate_per_hour_lyd ?? 0) }} LYD/hr
                     </span>
                 </div>
 
@@ -311,13 +364,8 @@ const statusBadge = computed(() => {
                         Running Bill:
                     </span>
                     <span class="text-sm font-semibold text-text-primary font-mono tabular-nums">
-                        {{ station.active_session.final_total_lyd.toFixed(3) }} LYD
+                        {{ Math.round(station.active_session.final_total_lyd) }} LYD
                     </span>
-                </div>
-
-                <!-- Retail items tag if any -->
-                <div v-if="station.active_session.order_items?.length" class="w-full text-left mt-1 text-xs text-text-secondary truncate">
-                    +{{ station.active_session.order_items.reduce((acc, i) => acc + i.quantity, 0) }} items
                 </div>
             </template>
         </div>
@@ -325,7 +373,7 @@ const statusBadge = computed(() => {
         <!-- Dynamic Action Toolbar -->
         <div class="pt-2 flex flex-col gap-2">
             <!-- 1. ROGUE PLAY ACTIONS -->
-            <div v-if="station.is_rogue" class="grid grid-cols-2 gap-2">
+            <div v-if="station.is_rogue && tvControlEnabled" class="grid grid-cols-2 gap-2">
                 <button
                     @click="emit('claim-rogue', station)"
                     type="button"
@@ -350,7 +398,7 @@ const statusBadge = computed(() => {
                     class="w-full py-3 px-4 rounded-lg bg-brand-primary hover:bg-brand-primary-hover text-text-primary font-semibold text-sm transition flex items-center justify-center gap-2 cursor-pointer"
                 >
                     <Play class="w-4 h-4 fill-current" />
-                    Start Session (Wake TV)
+                    {{ tvControlEnabled ? 'Start Session (Wake TV)' : 'Start Session' }}
                 </button>
             </div>
 
@@ -382,7 +430,7 @@ const statusBadge = computed(() => {
                 </div>
 
                 <!-- Secondary Actions -->
-                <div class="grid grid-cols-3 gap-1.5">
+                <div class="grid grid-cols-2 gap-1.5">
                     <button
                         @click="emit('switch-tier', station)"
                         type="button"
@@ -390,14 +438,6 @@ const statusBadge = computed(() => {
                         title="Switch Controller Count"
                     >
                         <Users class="w-3 h-3" /> Tier
-                    </button>
-                    <button
-                        @click="emit('add-retail-item', station)"
-                        type="button"
-                        class="py-1.5 px-2 rounded-lg bg-surface-elevated hover:bg-surface-border text-text-secondary text-xs font-medium border border-surface-border-subtle transition flex items-center justify-center gap-1 cursor-pointer"
-                        title="Add Drinks / Snacks"
-                    >
-                        <Coffee class="w-3 h-3" /> POS
                     </button>
                     <button
                         @click="emit('end-session', station)"
@@ -411,20 +451,13 @@ const statusBadge = computed(() => {
 
             <!-- 4. ACTIVE POSTPAID ACTIONS -->
             <div v-else-if="station.current_state === 'active_postpaid'" class="flex flex-col gap-2">
-                <div class="grid grid-cols-3 gap-1.5">
+                <div class="grid grid-cols-2 gap-1.5">
                     <button
                         @click="emit('switch-tier', station)"
                         type="button"
                         class="py-2 px-2 rounded-lg bg-surface-elevated hover:bg-surface-border text-text-secondary text-xs font-semibold border border-surface-border-subtle transition flex items-center justify-center gap-1 cursor-pointer"
                     >
                         <Users class="w-3.5 h-3.5" /> Tier
-                    </button>
-                    <button
-                        @click="emit('add-retail-item', station)"
-                        type="button"
-                        class="py-2 px-2 rounded-lg bg-surface-elevated hover:bg-surface-border text-text-secondary text-xs font-semibold border border-surface-border-subtle transition flex items-center justify-center gap-1 cursor-pointer"
-                    >
-                        <Coffee class="w-3.5 h-3.5" /> +Snack
                     </button>
                     <button
                         @click="emit('pause-session', station)"

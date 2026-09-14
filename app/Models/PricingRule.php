@@ -34,6 +34,7 @@ use Illuminate\Support\CarbonImmutable;
     'timezone',
     'prepaid_overtime_grace_minutes',
     'allow_overtime_default',
+    'tv_control_enabled',
 ])]
 class PricingRule extends Model
 {
@@ -49,6 +50,7 @@ class PricingRule extends Model
             'rogue_auto_sleep_seconds' => 'integer',
             'prepaid_overtime_grace_minutes' => 'integer',
             'allow_overtime_default' => 'boolean',
+            'tv_control_enabled' => 'boolean',
         ];
     }
 
@@ -65,6 +67,7 @@ class PricingRule extends Model
             'timezone' => 'Africa/Tripoli',
             'prepaid_overtime_grace_minutes' => 5,
             'allow_overtime_default' => true,
+            'tv_control_enabled' => false,
         ]);
     }
 

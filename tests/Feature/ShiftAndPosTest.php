@@ -78,18 +78,18 @@ test('it closes shift with blind drop and records cash difference', function () 
         cashier: $this->cashier
     );
 
-    // End and settle 20.000 LYD cash payment
+    // End and settle 10.000 LYD cash payment
     $session->update(['started_at' => now()->subMinutes(60)]);
     $session->intervals()->first()->update(['started_at' => now()->subMinutes(60)]);
     $this->sessionManager->endSession($session);
-    $this->sessionManager->settlePayment($session, 'cash', 6000); // 6.000 LYD session cash collected
+    $this->sessionManager->settlePayment($session, 'cash', 10000); // 10.000 LYD session cash collected
 
-    // Total expected in drawer: 100.000 float + 6.000 cash = 106.000 LYD
-    // Cashier counts 105.000 LYD (1.000 LYD short)
-    $closedShift = $this->shiftLedger->closeShift($shift, 105000);
+    // Total expected in drawer: 100.000 float + 10.000 cash = 110.000 LYD
+    // Cashier counts 109.000 LYD (1.000 LYD short)
+    $closedShift = $this->shiftLedger->closeShift($shift, 109000);
 
     expect($closedShift->status)->toBe('closed')
-        ->and($closedShift->expected_cash_millimes)->toBe(106000)
-        ->and($closedShift->closing_cash_counted_millimes)->toBe(105000)
+        ->and($closedShift->expected_cash_millimes)->toBe(110000)
+        ->and($closedShift->closing_cash_counted_millimes)->toBe(109000)
         ->and($closedShift->cash_difference_millimes)->toBe(-1000); // -1.000 LYD deficit
 });

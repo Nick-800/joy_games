@@ -71,7 +71,7 @@ test('it records theoretical total without overwriting the billed total', functi
     $session->refresh();
 
     expect($session->final_total_millimes)->toBe(6000) // untouched
-        ->and($session->previous_final_total_millimes)->toBe(6000)
+        ->and($session->previous_final_total_millimes)->toBe(10000)
         ->and($session->recomputed_at)->not->toBeNull();
 });
 

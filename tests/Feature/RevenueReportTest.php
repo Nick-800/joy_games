@@ -134,3 +134,32 @@ test('reports route requires authentication', function () {
     auth()->logout();
     $this->get('/reports')->assertRedirect('/login');
 });
+
+test('GET /reports/data excludes days with no revenue', function () {
+    makeCompleted($this->station->id, $this->cashier->id, $this->tier->id, 6000, '2026-09-10 12:00:00');
+
+    // Date range Sep 10 to Sep 12 (3 days). Only Sep 10 has revenue.
+    $response = $this->get('/reports/data?mode=daily&from=2026-09-10&to=2026-09-12');
+    $response->assertOk();
+
+    $buckets = $response->json('buckets');
+    expect(count($buckets))->toBe(1)
+        ->and($buckets[0]['key'])->toBe('2026-09-10')
+        ->and($buckets[0]['final_lyd'])->toBe(6000);
+});
+
+test('GET /reports/export excludes days with no revenue', function () {
+    makeCompleted($this->station->id, $this->cashier->id, $this->tier->id, 6000, '2026-09-10 12:00:00');
+
+    // Date range Sep 10 to Sep 12 (3 days).
+    $response = $this->get('/reports/export?mode=daily&from=2026-09-10&to=2026-09-12');
+    $response->assertOk();
+
+    ob_start();
+    $response->sendContent();
+    $csv = ob_get_clean();
+
+    expect($csv)->toContain('2026-09-10,1')
+        ->and($csv)->not->toContain('2026-09-11')
+        ->and($csv)->not->toContain('2026-09-12');
+});

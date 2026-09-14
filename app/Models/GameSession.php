@@ -47,6 +47,7 @@ use Illuminate\Support\Carbon;
     'customer_name',
     'customer_phone',
     'session_type',
+    'prepaid_payment_timing',
     'status',
     'allocated_minutes',
     'allow_overtime',
@@ -59,6 +60,7 @@ use Illuminate\Support\Carbon;
     'retail_amount_millimes',
     'discount_amount_millimes',
     'final_total_millimes',
+    'upfront_paid_millimes',
     'previous_final_total_millimes',
     'recomputed_at',
     'payment_status',
@@ -84,6 +86,7 @@ class GameSession extends Model
             'retail_amount_millimes' => 'integer',
             'discount_amount_millimes' => 'integer',
             'final_total_millimes' => 'integer',
+            'upfront_paid_millimes' => 'integer',
             'previous_final_total_millimes' => 'integer',
             'recomputed_at' => 'datetime',
             'cash_received_millimes' => 'integer',
@@ -162,8 +165,23 @@ class GameSession extends Model
         return $this->status === 'payment_pending';
     }
 
+    public function getUpfrontPaidLydAttribute(): int
+    {
+        return (int) round(($this->upfront_paid_millimes ?? 0) / 1000);
+    }
+
     public function isCompleted(): bool
     {
         return $this->status === 'completed';
+    }
+
+    public function isPrepaidPaid(): bool
+    {
+        return $this->isPrepaid() && $this->payment_status === 'paid';
+    }
+
+    public function isPrepaidUnpaid(): bool
+    {
+        return $this->isPrepaid() && $this->payment_status === 'unpaid';
     }
 }

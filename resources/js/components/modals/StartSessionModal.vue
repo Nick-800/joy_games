@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import { useForm } from '@inertiajs/vue3';
-import { X, Play, Clock, Zap, Users, User, ShieldCheck } from 'lucide-vue-next';
+import { X, Play, Clock, Zap, Users, User, ShieldCheck, Banknote, CheckCircle2 } from 'lucide-vue-next';
 import type { StationData } from '../StationCard.vue';
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
     show: boolean;
     station: StationData | null;
     pricingTiers: Array<{
@@ -16,7 +16,10 @@ const props = defineProps<{
         hourly_rate_lyd: number;
     }>;
     initialBackdateMinutes?: number;
-}>();
+    tvControlEnabled?: boolean;
+}>(), {
+    tvControlEnabled: false,
+});
 
 const emit = defineEmits<{
     (e: 'close'): void;
@@ -25,8 +28,10 @@ const emit = defineEmits<{
 const form = useForm({
     station_id: 0,
     session_type: 'prepaid' as 'prepaid' | 'postpaid',
+    prepaid_payment_timing: 'before' as 'before' | 'after',
     pricing_tier_id: 0,
     allocated_minutes: 60,
+    cash_received_lyd: 0,
     customer_name: '',
     customer_phone: '',
     auto_wake: true,
@@ -42,12 +47,16 @@ const durationPresets = [
     { label: '3 hours', minutes: 180 },
 ];
 
+const cashPresets = [5, 10, 20];
+
 function initialize() {
     if (!props.station) return;
     form.station_id = props.station.id;
     form.pricing_tier_id = props.pricingTiers[0]?.id ?? 1;
     form.session_type = 'prepaid';
+    form.prepaid_payment_timing = 'before';
     form.allocated_minutes = 60;
+    form.cash_received_lyd = 0;
     form.customer_name = '';
     form.customer_phone = '';
     form.auto_wake = true;
@@ -69,16 +78,59 @@ const selectedTier = computed(() => {
     return props.pricingTiers.find(t => t.id === form.pricing_tier_id);
 });
 
+function getTierRateLyd(tier: {
+    id: number;
+    controller_count_min: number;
+    controller_count_max: number;
+    hourly_rate_lyd: number;
+}): number {
+    if (!props.station) return tier.hourly_rate_lyd;
+
+    if (tier.controller_count_max <= 2 && props.station.hourly_rate_1_2_lyd) {
+        return props.station.hourly_rate_1_2_lyd;
+    }
+    if (tier.controller_count_min >= 3 && props.station.hourly_rate_3_4_lyd) {
+        return props.station.hourly_rate_3_4_lyd;
+    }
+    if (props.station.default_hourly_rate_lyd) {
+        return props.station.default_hourly_rate_lyd;
+    }
+
+    const mult = props.station.is_vip ? 1.50 : 1.00;
+    const raw = tier.hourly_rate_lyd * mult;
+    return Math.ceil(raw / 5) * 5;
+}
+
 const estimatedPrepaidCostLyd = computed(() => {
     if (form.session_type !== 'prepaid' || !selectedTier.value || !form.allocated_minutes) {
         return 0;
     }
-    const mult = props.station?.is_vip ? 1.50 : 1.00;
-    return (form.allocated_minutes / 60) * selectedTier.value.hourly_rate_lyd * mult;
+    const rate = getTierRateLyd(selectedTier.value);
+    const rawCost = (form.allocated_minutes / 60) * rate;
+    if (rawCost <= 0) return 0;
+    return Math.ceil(rawCost / 5) * 5;
+});
+
+watch(() => estimatedPrepaidCostLyd.value, (newCost) => {
+    if (form.prepaid_payment_timing === 'before') {
+        if (form.cash_received_lyd === 0 || form.cash_received_lyd < newCost) {
+            form.cash_received_lyd = newCost;
+        }
+    }
+}, { immediate: true });
+
+const changeDueLyd = computed(() => {
+    if (form.prepaid_payment_timing !== 'before') return 0;
+    return Math.max(0, (form.cash_received_lyd || 0) - estimatedPrepaidCostLyd.value);
 });
 
 function submit() {
-    form.post('/sessions/start', {
+    form.transform((data) => ({
+        ...data,
+        cash_received_millimes: (data.session_type === 'prepaid' && data.prepaid_payment_timing === 'before')
+            ? Math.round((data.cash_received_lyd || 0) * 1000)
+            : null,
+    })).post('/sessions/start', {
         preserveScroll: true,
         onSuccess: () => {
             emit('close');
@@ -170,7 +222,7 @@ function submit() {
                                 </span>
                             </div>
                             <div class="text-sm font-semibold text-text-primary font-mono tabular-nums">
-                                {{ (tier.hourly_rate_lyd * (station.is_vip ? 1.50 : 1.00)).toFixed(3) }} LYD/hr
+                                {{ getTierRateLyd(tier) }} LYD/hr
                             </div>
                         </button>
                     </div>
@@ -199,7 +251,7 @@ function submit() {
                     </div>
 
                     <!-- Custom Duration Input -->
-                    <div class="flex items-center gap-3">
+                    <div class="flex items-center gap-3 mb-4">
                         <div class="flex-1">
                             <input
                                 v-model.number="form.allocated_minutes"
@@ -211,7 +263,93 @@ function submit() {
                             />
                         </div>
                         <div class="text-xs text-text-muted font-medium">
-                            Upfront Cost: <span class="font-semibold text-text-primary font-mono">{{ estimatedPrepaidCostLyd.toFixed(3) }} LYD</span>
+                            Upfront Cost: <span class="font-semibold text-text-primary font-mono">{{ Math.round(estimatedPrepaidCostLyd) }} LYD</span>
+                        </div>
+                    </div>
+
+                    <!-- Payment Timing Selector (Pay Before Starts vs Pay After Ends) -->
+                    <div class="flex flex-col gap-2.5">
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-text-muted">
+                            Prepaid Payment Timing
+                        </label>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button
+                                type="button"
+                                @click="form.prepaid_payment_timing = 'before'"
+                                :class="[
+                                    'py-2.5 px-3 rounded-lg border text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer',
+                                    form.prepaid_payment_timing === 'before'
+                                        ? 'bg-brand-primary text-text-primary border-transparent shadow-sm'
+                                        : 'bg-surface-elevated hover:bg-surface-border text-text-secondary border-surface-border-subtle'
+                                ]"
+                            >
+                                <CheckCircle2 class="w-3.5 h-3.5" /> Pay Before Session Starts
+                            </button>
+                            <button
+                                type="button"
+                                @click="form.prepaid_payment_timing = 'after'"
+                                :class="[
+                                    'py-2.5 px-3 rounded-lg border text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer',
+                                    form.prepaid_payment_timing === 'after'
+                                        ? 'bg-brand-primary text-text-primary border-transparent shadow-sm'
+                                        : 'bg-surface-elevated hover:bg-surface-border text-text-secondary border-surface-border-subtle'
+                                ]"
+                            >
+                                <Clock class="w-3.5 h-3.5" /> Pay After Session Ends
+                            </button>
+                        </div>
+
+                        <!-- Upfront Cash Collection UI (Only if paying before) -->
+                        <div v-if="form.prepaid_payment_timing === 'before'" class="p-3.5 rounded-xl bg-surface-overlay border border-surface-border-subtle flex flex-col gap-2.5 mt-1">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-semibold uppercase tracking-wider text-text-muted flex items-center gap-1.5">
+                                    <Banknote class="w-3.5 h-3.5" /> Cash Received (LYD)
+                                </span>
+                                <span class="text-xs font-mono text-text-secondary">
+                                    Due: <strong class="text-text-primary">{{ estimatedPrepaidCostLyd }} LYD</strong>
+                                </span>
+                            </div>
+
+                            <!-- 3 Options: 5, 10, 20 -->
+                            <div class="grid grid-cols-3 gap-2">
+                                <button
+                                    v-for="preset in cashPresets"
+                                    :key="preset"
+                                    type="button"
+                                    @click="form.cash_received_lyd = preset"
+                                    :class="[
+                                        'py-1.5 text-xs font-mono font-semibold rounded-lg border text-center transition cursor-pointer',
+                                        form.cash_received_lyd === preset
+                                            ? 'bg-brand-primary text-text-primary border-transparent'
+                                            : 'bg-surface-elevated hover:bg-surface-border text-text-secondary border border-surface-border-subtle'
+                                    ]"
+                                >
+                                    {{ preset }} LYD
+                                </button>
+                            </div>
+
+                            <!-- Custom Cash Input & Change Due -->
+                            <div class="grid grid-cols-2 gap-3 items-center pt-2 border-t border-surface-border-subtle">
+                                <div>
+                                    <input
+                                        v-model.number="form.cash_received_lyd"
+                                        type="number"
+                                        step="5"
+                                        min="0"
+                                        class="w-full px-3 py-1.5 bg-surface-canvas border border-surface-border-subtle rounded-lg text-text-primary font-mono text-xs focus:outline-none focus:border-brand-primary placeholder:text-text-muted"
+                                        placeholder="Paid amount"
+                                    />
+                                </div>
+                                <div class="text-right">
+                                    <span class="text-[11px] text-text-muted block">Change to Return:</span>
+                                    <span :class="['text-sm font-mono font-semibold tabular-nums', changeDueLyd >= 0 ? 'text-status-available' : 'text-status-rogue']">
+                                        {{ Math.round(changeDueLyd) }} LYD
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div v-else class="p-2.5 rounded-lg bg-surface-canvas border border-surface-border-subtle text-xs text-text-muted">
+                            Session will be tagged as <span class="text-status-warning font-semibold">Unpaid</span> until payment is collected at checkout.
                         </div>
                     </div>
                 </div>
@@ -241,7 +379,7 @@ function submit() {
                 </div>
 
                 <!-- 6. Toggle Auto Wake TV Screen -->
-                <div class="flex items-center justify-between p-3 rounded-xl bg-surface-canvas border border-surface-border-subtle text-xs">
+                <div v-if="tvControlEnabled" class="flex items-center justify-between p-3 rounded-xl bg-surface-canvas border border-surface-border-subtle text-xs">
                     <span class="text-text-secondary font-medium">Turn On TV Screen (Wake-on-LAN):</span>
                     <label class="relative inline-flex items-center cursor-pointer">
                         <input type="checkbox" v-model="form.auto_wake" class="sr-only peer" />

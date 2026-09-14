@@ -1,7 +1,23 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import { Wallet, Clock, Calendar, Activity, Download, Filter, X, ChevronRight, Receipt } from 'lucide-vue-next';
+import {
+    Wallet,
+    Clock,
+    Calendar,
+    Download,
+    Filter,
+    X,
+    ChevronRight,
+    Receipt,
+    TrendingUp,
+    Gamepad2,
+    Timer,
+    BarChart3,
+    Sparkles,
+} from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 
 interface StationOption {
     id: number;
@@ -20,11 +36,9 @@ interface Bucket {
     starts_at: string;
     ends_at: string;
     time_lyd: number;
-    retail_lyd: number;
     discount_lyd: number;
     final_lyd: number;
     cash_lyd: number;
-    card_lyd: number;
     sessions: number;
     minutes: number;
     prepaid_sessions: number;
@@ -34,11 +48,9 @@ interface Bucket {
         station_id: number;
         station_name: string;
         time_lyd: number;
-        retail_lyd: number;
         discount_lyd: number;
         final_lyd: number;
         cash_lyd: number;
-        card_lyd: number;
         sessions: number;
         minutes: number;
     }>;
@@ -52,16 +64,13 @@ interface ReportResponse {
     filters: {
         station_ids: number[];
         cashier_ids: number[];
-        payment_methods: string[];
         session_types: string[];
     };
     totals: {
         time_lyd: number;
-        retail_lyd: number;
         discount_lyd: number;
         final_lyd: number;
         cash_lyd: number;
-        card_lyd: number;
         sessions: number;
         minutes: number;
         prepaid_sessions: number;
@@ -84,7 +93,6 @@ const from = ref<string>(props.defaultRange.from);
 const to = ref<string>(props.defaultRange.to);
 const stationIds = ref<number[]>([]);
 const cashierIds = ref<number[]>([]);
-const paymentMethods = ref<string[]>([]);
 const sessionTypes = ref<string[]>([]);
 const showFilters = ref(true);
 const showTheoretical = ref(false);
@@ -108,7 +116,6 @@ async function fetchReport() {
         url.searchParams.set('to', to.value);
         stationIds.value.forEach((id) => url.searchParams.append('station_ids[]', String(id)));
         cashierIds.value.forEach((id) => url.searchParams.append('cashier_ids[]', String(id)));
-        paymentMethods.value.forEach((p) => url.searchParams.append('payment_methods[]', p));
         sessionTypes.value.forEach((p) => url.searchParams.append('session_types[]', p));
 
         const response = await fetch(url.toString(), {
@@ -136,7 +143,6 @@ function exportCsv() {
     url.searchParams.set('to', to.value);
     stationIds.value.forEach((id) => url.searchParams.append('station_ids[]', String(id)));
     cashierIds.value.forEach((id) => url.searchParams.append('cashier_ids[]', String(id)));
-    paymentMethods.value.forEach((p) => url.searchParams.append('payment_methods[]', p));
     sessionTypes.value.forEach((p) => url.searchParams.append('session_types[]', p));
     window.open(url.toString(), '_blank');
 }
@@ -161,7 +167,6 @@ function applyQuickRange(days: number, weeks = 0, months = 0) {
 function clearFilters() {
     stationIds.value = [];
     cashierIds.value = [];
-    paymentMethods.value = [];
     sessionTypes.value = [];
     fetchReport();
 }
@@ -180,7 +185,6 @@ async function selectBucket(bucket: Bucket) {
         url.searchParams.set('key', bucket.key);
         stationIds.value.forEach((id) => url.searchParams.append('station_ids[]', String(id)));
         cashierIds.value.forEach((id) => url.searchParams.append('cashier_ids[]', String(id)));
-        paymentMethods.value.forEach((p) => url.searchParams.append('payment_methods[]', p));
         sessionTypes.value.forEach((p) => url.searchParams.append('session_types[]', p));
 
         const response = await fetch(url.toString(), {
@@ -203,15 +207,104 @@ async function selectBucket(bucket: Bucket) {
 }
 
 function formatLyd(millimes: number): string {
-    return (millimes / 1000).toFixed(3);
+    return Math.round(millimes / 1000).toString();
 }
 
 const maxBucketRevenue = computed(() => {
     if (!report.value) {
-return 0;
-}
+        return 0;
+    }
 
     return Math.max(1, ...report.value.buckets.map((b) => b.final_lyd));
+});
+
+const avgTicket = computed(() => {
+    if (!report.value || report.value.totals.sessions === 0) {
+        return '0';
+    }
+
+    return formatLyd(Math.round(report.value.totals.final_lyd / report.value.totals.sessions));
+});
+
+const avgSessionDuration = computed(() => {
+    if (!report.value || report.value.totals.sessions === 0) {
+        return '0m';
+    }
+
+    const mins = Math.round(report.value.totals.minutes / report.value.totals.sessions);
+
+    if (mins < 60) {
+        return `${mins}m`;
+    }
+
+    const h = Math.floor(mins / 60);
+    const rem = mins % 60;
+
+    return rem > 0 ? `${h}h ${rem}m` : `${h}h`;
+});
+
+const totalPlaytimeFormatted = computed(() => {
+    if (!report.value || report.value.totals.minutes === 0) {
+        return '0h';
+    }
+
+    const mins = report.value.totals.minutes;
+    const h = Math.floor(mins / 60);
+    const rem = mins % 60;
+
+    if (h === 0) {
+        return `${rem}m`;
+    }
+
+    return rem > 0 ? `${h}h ${rem}m` : `${h}h`;
+});
+
+const hourlyYield = computed(() => {
+    if (!report.value || report.value.totals.minutes === 0) {
+        return '0';
+    }
+
+    const hours = report.value.totals.minutes / 60;
+
+    return formatLyd(Math.round(report.value.totals.final_lyd / hours));
+});
+
+const prepaidSharePercent = computed(() => {
+    if (!report.value || report.value.totals.sessions === 0) {
+        return 0;
+    }
+
+    return Math.round((report.value.totals.prepaid_sessions / report.value.totals.sessions) * 100);
+});
+
+const postpaidSharePercent = computed(() => {
+    if (!report.value || report.value.totals.sessions === 0) {
+        return 0;
+    }
+
+    return Math.max(0, 100 - prepaidSharePercent.value);
+});
+
+const dailyAverageRevenue = computed(() => {
+    if (!report.value || report.value.buckets.length === 0) {
+        return '0';
+    }
+
+    return formatLyd(Math.round(report.value.totals.final_lyd / report.value.buckets.length));
+});
+
+const discountPercentage = computed(() => {
+    if (!report.value) {
+        return 0;
+    }
+
+    const gross = report.value.totals.final_lyd + report.value.totals.discount_lyd;
+
+    if (gross === 0) {
+        return 0;
+    }
+
+    return Math.round((report.value.totals.discount_lyd / gross) * 100);
 });
 
 watch([mode], () => fetchReport());
@@ -411,27 +504,7 @@ fetchReport();
                     </div>
                 </div>
 
-                <div>
-                    <label class="block text-xs font-semibold uppercase tracking-wider text-text-muted mb-2">Payment Method</label>
-                    <div class="flex flex-wrap gap-1.5">
-                        <button
-                            v-for="p in ['cash', 'card', 'split']"
-                            :key="p"
-                            @click="paymentMethods = toggleArrayValue(paymentMethods, p)"
-                            type="button"
-                            :class="[
-                                'px-2.5 py-1 rounded-lg text-xs font-semibold transition border cursor-pointer',
-                                paymentMethods.includes(p)
-                                    ? 'bg-status-postpaid text-text-primary border-transparent'
-                                    : 'bg-surface-overlay text-text-secondary border-surface-border-subtle'
-                            ]"
-                        >
-                            {{ p }}
-                        </button>
-                    </div>
-                </div>
-
-                <div class="md:col-span-4 flex justify-end">
+                <div class="md:col-span-3 flex justify-end">
                     <button
                         @click="clearFilters"
                         type="button"
@@ -442,49 +515,209 @@ fetchReport();
                 </div>
             </div>
 
-            <!-- KPI Cards -->
-            <div v-if="report" class="grid grid-cols-2 md:grid-cols-5 gap-3">
-                <div class="bg-surface-card border border-surface-border-subtle rounded-2xl p-4">
-                    <div class="flex items-center gap-1.5 text-text-muted text-xs uppercase font-semibold">
-                        <Wallet class="w-3.5 h-3.5" /> Final Revenue
-                    </div>
-                    <div class="mt-2 text-2xl font-bold font-mono tabular-nums text-status-available">
-                        {{ formatLyd(report.totals.final_lyd) }}
-                        <span class="text-sm font-semibold text-text-muted ml-1">LYD</span>
-                    </div>
+            <!-- KPI Dashboard Section (shadcn components) -->
+            <div v-if="report" class="flex flex-col gap-4">
+                <!-- 1. Primary Metrics Grid -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <!-- Total Net Revenue -->
+                    <Card class="relative overflow-hidden group border-surface-border-subtle hover:border-status-available/40">
+                        <div class="absolute top-0 right-0 w-24 h-24 bg-status-available/5 rounded-full blur-xl pointer-events-none group-hover:bg-status-available/10 transition-colors"></div>
+                        <CardHeader>
+                            <CardTitle>
+                                <span>Total Net Revenue</span>
+                                <Badge variant="success" class="text-[10px] font-mono">
+                                    {{ report.buckets.length }} {{ report.buckets.length === 1 ? 'day' : 'days' }}
+                                </Badge>
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div class="text-3xl font-bold font-mono tracking-tight text-status-available tabular-nums">
+                                {{ formatLyd(report.totals.final_lyd) }}
+                                <span class="text-xs font-semibold text-text-muted ml-1">LYD</span>
+                            </div>
+                            <CardDescription>
+                                Total billed customer revenue
+                            </CardDescription>
+                        </CardContent>
+                        <CardFooter class="justify-between text-[11px] pt-3">
+                            <span class="flex items-center gap-1.5 text-text-secondary">
+                                <TrendingUp class="w-3.5 h-3.5 text-status-available" />
+                                Avg {{ dailyAverageRevenue }} LYD/day
+                            </span>
+                        </CardFooter>
+                    </Card>
+
+                    <!-- Total Sessions -->
+                    <Card class="relative overflow-hidden group border-surface-border-subtle hover:border-brand-primary/40">
+                        <CardHeader>
+                            <CardTitle>
+                                <span>Sessions Played</span>
+                                <div class="w-6 h-6 rounded-lg bg-brand-primary/10 flex items-center justify-center text-brand-primary">
+                                    <Gamepad2 class="w-3.5 h-3.5" />
+                                </div>
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div class="text-3xl font-bold font-mono tracking-tight text-text-primary tabular-nums">
+                                {{ report.totals.sessions }}
+                            </div>
+                            <CardDescription>
+                                {{ totalPlaytimeFormatted }} total play duration
+                            </CardDescription>
+                        </CardContent>
+                        <CardFooter class="justify-between text-[11px] pt-3">
+                            <span class="text-text-secondary">
+                                {{ report.totals.vip_sessions }} VIP sessions
+                            </span>
+                            <Badge variant="outline" class="text-[10px] font-mono">
+                                {{ avgSessionDuration }} avg
+                            </Badge>
+                        </CardFooter>
+                    </Card>
+
+                    <!-- Average Ticket / ARPU -->
+                    <Card class="relative overflow-hidden group border-surface-border-subtle hover:border-surface-border">
+                        <CardHeader>
+                            <CardTitle>
+                                <span>Average Ticket</span>
+                                <div class="w-6 h-6 rounded-lg bg-surface-elevated flex items-center justify-center text-text-secondary">
+                                    <Receipt class="w-3.5 h-3.5" />
+                                </div>
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div class="text-3xl font-bold font-mono tracking-tight text-text-primary tabular-nums">
+                                {{ avgTicket }}
+                                <span class="text-xs font-semibold text-text-muted ml-1">LYD</span>
+                            </div>
+                            <CardDescription>
+                                Average spend per visit
+                            </CardDescription>
+                        </CardContent>
+                        <CardFooter class="justify-between text-[11px] pt-3">
+                            <span class="flex items-center gap-1 text-text-secondary">
+                                <Clock class="w-3.5 h-3.5 text-text-muted" />
+                                {{ avgSessionDuration }} avg duration
+                            </span>
+                        </CardFooter>
+                    </Card>
+
+                    <!-- Hourly Gameplay Yield -->
+                    <Card class="relative overflow-hidden group border-surface-border-subtle hover:border-brand-primary/40">
+                        <CardHeader>
+                            <CardTitle>
+                                <span>Hourly Yield</span>
+                                <div class="w-6 h-6 rounded-lg bg-brand-primary/10 flex items-center justify-center text-brand-primary">
+                                    <Timer class="w-3.5 h-3.5" />
+                                </div>
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div class="text-3xl font-bold font-mono tracking-tight text-brand-primary tabular-nums">
+                                {{ hourlyYield }}
+                                <span class="text-xs font-semibold text-text-muted ml-1">LYD/hr</span>
+                            </div>
+                            <CardDescription>
+                                Yield per console hour
+                            </CardDescription>
+                        </CardContent>
+                        <CardFooter class="justify-between text-[11px] pt-3">
+                            <span class="text-text-secondary">
+                                Active station play rate
+                            </span>
+                        </CardFooter>
+                    </Card>
                 </div>
-                <div class="bg-surface-card border border-surface-border-subtle rounded-2xl p-4">
-                    <div class="flex items-center gap-1.5 text-text-muted text-xs uppercase font-semibold">
-                        <Clock class="w-3.5 h-3.5" /> Time Revenue
-                    </div>
-                    <div class="mt-2 text-2xl font-bold font-mono tabular-nums text-text-primary">
-                        {{ formatLyd(report.totals.time_lyd) }}
-                    </div>
-                </div>
-                <div class="bg-surface-card border border-surface-border-subtle rounded-2xl p-4">
-                    <div class="flex items-center gap-1.5 text-text-muted text-xs uppercase font-semibold">
-                        <Receipt class="w-3.5 h-3.5" /> Retail
-                    </div>
-                    <div class="mt-2 text-2xl font-bold font-mono tabular-nums text-text-primary">
-                        {{ formatLyd(report.totals.retail_lyd) }}
-                    </div>
-                </div>
-                <div class="bg-surface-card border border-surface-border-subtle rounded-2xl p-4">
-                    <div class="flex items-center gap-1.5 text-text-muted text-xs uppercase font-semibold">
-                        <Activity class="w-3.5 h-3.5" /> Sessions
-                    </div>
-                    <div class="mt-2 text-2xl font-bold font-mono tabular-nums text-text-primary">
-                        {{ report.totals.sessions }}
-                    </div>
-                    <div class="text-xs text-text-muted mt-1 font-mono">{{ report.totals.minutes }} minutes</div>
-                </div>
-                <div class="bg-surface-card border border-surface-border-subtle rounded-2xl p-4">
-                    <div class="flex items-center gap-1.5 text-text-muted text-xs uppercase font-semibold">
-                        Avg Ticket
-                    </div>
-                    <div class="mt-2 text-2xl font-bold font-mono tabular-nums text-text-primary">
-                        {{ report.totals.sessions > 0 ? formatLyd(Math.round(report.totals.final_lyd / report.totals.sessions)) : '0.000' }}
-                    </div>
+
+                <!-- 2. Analytical Deep-Dive Cards Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                    <!-- Session Distribution Card -->
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>
+                                <span>Session Model Share</span>
+                                <BarChart3 class="w-4 h-4 text-text-muted" />
+                            </CardTitle>
+                            <CardDescription>Prepaid vs postpaid customer usage</CardDescription>
+                        </CardHeader>
+                        <CardContent class="flex flex-col gap-3">
+                            <!-- Dual Progress Bar -->
+                            <div class="h-2 w-full bg-surface-overlay rounded-full overflow-hidden flex">
+                                <div
+                                    class="bg-status-prepaid h-full transition-all duration-300"
+                                    :style="{ width: `${prepaidSharePercent}%` }"
+                                    :title="`Prepaid: ${prepaidSharePercent}%`"
+                                ></div>
+                                <div
+                                    class="bg-status-postpaid h-full transition-all duration-300"
+                                    :style="{ width: `${postpaidSharePercent}%` }"
+                                    :title="`Postpaid: ${postpaidSharePercent}%`"
+                                ></div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2 pt-1">
+                                <div class="p-2.5 rounded-xl bg-surface-canvas border border-surface-border-subtle">
+                                    <div class="flex items-center gap-1.5 text-xs text-text-muted">
+                                        <span class="w-2 h-2 rounded-full bg-status-prepaid"></span>
+                                        Prepaid
+                                    </div>
+                                    <div class="text-base font-bold font-mono tabular-nums text-text-primary mt-1">
+                                        {{ report.totals.prepaid_sessions }} <span class="text-xs font-normal text-text-muted">sessions</span>
+                                    </div>
+                                    <span class="text-[10px] text-text-muted font-mono">{{ prepaidSharePercent }}% share</span>
+                                </div>
+                                <div class="p-2.5 rounded-xl bg-surface-canvas border border-surface-border-subtle">
+                                    <div class="flex items-center gap-1.5 text-xs text-text-muted">
+                                        <span class="w-2 h-2 rounded-full bg-status-postpaid"></span>
+                                        Postpaid
+                                    </div>
+                                    <div class="text-base font-bold font-mono tabular-nums text-text-primary mt-1">
+                                        {{ report.totals.postpaid_sessions }} <span class="text-xs font-normal text-text-muted">sessions</span>
+                                    </div>
+                                    <span class="text-[10px] text-text-muted font-mono">{{ postpaidSharePercent }}% share</span>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <!-- Financial Settlements & Discounts Card -->
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>
+                                <span>Cash Flow & Discounts</span>
+                                <Sparkles class="w-4 h-4 text-text-muted" />
+                            </CardTitle>
+                            <CardDescription>Cash collection and promotional relief</CardDescription>
+                        </CardHeader>
+                        <CardContent class="flex flex-col gap-3">
+                            <div class="grid grid-cols-2 gap-2">
+                                <div class="p-2.5 rounded-xl bg-surface-canvas border border-surface-border-subtle">
+                                    <div class="flex items-center gap-1.5 text-xs text-text-muted">
+                                        <Wallet class="w-3.5 h-3.5 text-status-available" />
+                                        Cash Collected
+                                    </div>
+                                    <div class="text-base font-bold font-mono tabular-nums text-status-available mt-1">
+                                        {{ formatLyd(report.totals.cash_lyd) }} <span class="text-xs font-normal text-text-muted">LYD</span>
+                                    </div>
+                                    <span class="text-[10px] text-text-muted font-mono">100% Cash Intake</span>
+                                </div>
+                                <div class="p-2.5 rounded-xl bg-surface-canvas border border-surface-border-subtle">
+                                    <div class="flex items-center gap-1.5 text-xs text-text-muted">
+                                        <span class="w-2 h-2 rounded-full bg-status-warning"></span>
+                                        Discounts Waived
+                                    </div>
+                                    <div class="text-base font-bold font-mono tabular-nums text-text-primary mt-1">
+                                        {{ formatLyd(report.totals.discount_lyd) }} <span class="text-xs font-normal text-text-muted">LYD</span>
+                                    </div>
+                                    <span class="text-[10px] text-text-muted font-mono">{{ discountPercentage }}% effective discount</span>
+                                </div>
+                            </div>
+                            <div class="p-2 rounded-xl bg-surface-overlay/60 border border-surface-border-subtle/60 flex items-center justify-between text-xs text-text-secondary">
+                                <span class="text-text-muted">Total Play Duration</span>
+                                <span class="font-mono font-semibold text-text-primary">{{ totalPlaytimeFormatted }} ({{ report.totals.minutes }} mins)</span>
+                            </div>
+                        </CardContent>
+                    </Card>
                 </div>
             </div>
 
@@ -492,7 +725,7 @@ fetchReport();
             <div v-if="report" class="bg-surface-card border border-surface-border-subtle rounded-2xl overflow-hidden">
                 <div class="px-4 py-3 border-b border-surface-border-subtle flex items-center justify-between">
                     <h3 class="text-sm font-semibold text-text-primary">Revenue Buckets</h3>
-                    <span class="text-xs text-text-muted">{{ report.buckets.length }} buckets · tz {{ report.timezone }}</span>
+                    <span class="text-xs text-text-muted">{{ report.buckets.length }} {{ report.buckets.length === 1 ? 'day' : 'days' }} with revenue · tz {{ report.timezone }}</span>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-xs">
@@ -501,10 +734,8 @@ fetchReport();
                                 <th class="text-left px-4 py-2.5 font-semibold">Bucket</th>
                                 <th class="text-right px-4 py-2.5 font-semibold">Sessions</th>
                                 <th class="text-right px-4 py-2.5 font-semibold">Time LYD</th>
-                                <th class="text-right px-4 py-2.5 font-semibold">Retail LYD</th>
                                 <th class="text-right px-4 py-2.5 font-semibold">Discount LYD</th>
                                 <th class="text-right px-4 py-2.5 font-semibold">Cash LYD</th>
-                                <th class="text-right px-4 py-2.5 font-semibold">Card LYD</th>
                                 <th class="text-right px-4 py-2.5 font-semibold">Minutes</th>
                                 <th class="text-right px-4 py-2.5 font-semibold">Final LYD</th>
                                 <th class="text-left px-4 py-2.5 font-semibold">Per-Station Breakdown</th>
@@ -512,6 +743,11 @@ fetchReport();
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-surface-border-subtle">
+                            <tr v-if="report.buckets.length === 0">
+                                <td colspan="9" class="px-4 py-8 text-center text-text-muted">
+                                    No revenue recorded for the selected period.
+                                </td>
+                            </tr>
                             <tr
                                 v-for="bucket in report.buckets"
                                 :key="bucket.key"
@@ -521,10 +757,8 @@ fetchReport();
                                 <td class="px-4 py-2.5 font-semibold text-text-primary whitespace-nowrap">{{ bucket.label }}</td>
                                 <td class="px-4 py-2.5 text-right font-mono tabular-nums">{{ bucket.sessions }}</td>
                                 <td class="px-4 py-2.5 text-right font-mono tabular-nums text-text-secondary">{{ formatLyd(bucket.time_lyd) }}</td>
-                                <td class="px-4 py-2.5 text-right font-mono tabular-nums text-text-secondary">{{ formatLyd(bucket.retail_lyd) }}</td>
                                 <td class="px-4 py-2.5 text-right font-mono tabular-nums text-text-muted">{{ formatLyd(bucket.discount_lyd) }}</td>
                                 <td class="px-4 py-2.5 text-right font-mono tabular-nums text-text-secondary">{{ formatLyd(bucket.cash_lyd) }}</td>
-                                <td class="px-4 py-2.5 text-right font-mono tabular-nums text-text-secondary">{{ formatLyd(bucket.card_lyd) }}</td>
                                 <td class="px-4 py-2.5 text-right font-mono tabular-nums">{{ bucket.minutes }}</td>
                                 <td class="px-4 py-2.5 text-right font-mono tabular-nums font-bold text-status-available">{{ formatLyd(bucket.final_lyd) }}</td>
                                 <td class="px-4 py-2.5 text-xs text-text-secondary max-w-xs">
@@ -555,10 +789,8 @@ fetchReport();
                                 <td class="px-4 py-3 uppercase tracking-wider text-text-muted">Totals</td>
                                 <td class="px-4 py-3 text-right font-mono tabular-nums">{{ report.totals.sessions }}</td>
                                 <td class="px-4 py-3 text-right font-mono tabular-nums">{{ formatLyd(report.totals.time_lyd) }}</td>
-                                <td class="px-4 py-3 text-right font-mono tabular-nums">{{ formatLyd(report.totals.retail_lyd) }}</td>
                                 <td class="px-4 py-3 text-right font-mono tabular-nums">{{ formatLyd(report.totals.discount_lyd) }}</td>
                                 <td class="px-4 py-3 text-right font-mono tabular-nums">{{ formatLyd(report.totals.cash_lyd) }}</td>
-                                <td class="px-4 py-3 text-right font-mono tabular-nums">{{ formatLyd(report.totals.card_lyd) }}</td>
                                 <td class="px-4 py-3 text-right font-mono tabular-nums">{{ report.totals.minutes }}</td>
                                 <td class="px-4 py-3 text-right font-mono tabular-nums text-status-available">{{ formatLyd(report.totals.final_lyd) }}</td>
                                 <td colspan="2"></td>
